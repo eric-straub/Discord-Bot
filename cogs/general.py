@@ -17,6 +17,21 @@ class General(commands.Cog):
     async def hello(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"Hello, {interaction.user.mention}! 👋")
 
+    # Slash command: /test — basic healthcheck for interactions
+    @app_commands.command(name="test", description="Basic test command to verify slash functionality")
+    async def test(self, interaction: discord.Interaction):
+        """Simple slash command to confirm the bot receives interactions."""
+        try:
+            await interaction.response.send_message(f"Test OK — received from {interaction.user.mention}")
+        except Exception as e:
+            # If the immediate response fails, try to defer then follow up
+            print(f"/test handler error: {e}")
+            try:
+                await interaction.response.defer()
+                await interaction.followup.send(f"Test encountered an error: {e}")
+            except Exception as e2:
+                print(f"/test followup failed: {e2}")
+
     # Prefix command: !echo text
     @commands.command(name="echo")
     async def echo(self, ctx, *, message: str):
