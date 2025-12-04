@@ -24,7 +24,7 @@ class General(commands.Cog):
 
     # Prefix command: !ping
     @commands.command(name="ping")
-    async def ping(self, ctx, *, message: str):
+    async def ping(self, ctx, *):
         latency = round(self.bot.latency * 1000)
         await ctx.send(f"Pong! `{latency} ms`")
 
