@@ -8,19 +8,23 @@ import os
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+
+intents = discord.Intents.default()
+intents.message_content = True
+
 class MyBot(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix="!", intents=discord.Intents.default())
-        # self.tree = app_commands.CommandTree(self)
-
     async def setup_hook(self):
-        # Register commands globally
-        await self.tree.sync()
+        # If you want instant sync for testing, use your guild ID instead:
+        # guild = discord.Object(id=YOUR_GUILD_ID)
+        # await self.tree.sync(guild=guild)
+        
+        await self.tree.sync()  # Global sync (takes up to 1 hour)
+        print("Slash commands synced.")
 
-bot = MyBot()
+bot = MyBot(command_prefix="!", intents=intents)
 
-@bot.tree.command(name="hello", description="Say hello!")
-async def hello(interaction: discord.Interaction):
+@bot.tree.command(name="hello", description="Say hello")
+async def hello_cmd(interaction: discord.Interaction):
     await interaction.response.send_message("Hello!")
 
 bot.run(TOKEN)
