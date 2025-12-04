@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.presences = True
 
 # Initialize bot
 class MyBot(commands.Bot):
