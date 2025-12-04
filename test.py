@@ -23,4 +23,4 @@ bot = MyBot()
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello!")
 
-bot.run("TOKEN")
+bot.run(TOKEN)
