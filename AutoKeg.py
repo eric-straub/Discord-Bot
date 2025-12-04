@@ -24,6 +24,7 @@ class MyBot(commands.Bot):
             intents=intents,
             application_id=os.getenv("APPLICATION_ID")
         )
+        self.tree = app_commands.CommandTree(self)
 
     async def on_error(self, event_method, *args, **kwargs):
         # Generic event error logger to capture uncaught exceptions in event handlers
