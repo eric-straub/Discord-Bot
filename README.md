@@ -1,5 +1,3 @@
-# **README.md — Discord Bot**
-
 ## Overview
 
 This Discord bot is built using **discord.py**, supports both **prefix commands** (`!ping`, `!echo`, etc.) and **slash commands** (`/ping`, `/rank`, `/leaderboard`, etc.), and includes a complete **XP + leveling rank system**.
