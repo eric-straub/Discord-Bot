@@ -59,6 +59,7 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         """Runs before the bot connects — load cogs here."""
         await self.load_extension("cogs.general")
+        await self.load_extension("cogs.rank")
 
 
 # Create bot instance
