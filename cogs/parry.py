@@ -30,10 +30,14 @@ class Parry(commands.Cog):
         # Fun parry messages
         messages = [
             "**CLANG!** Gwyn gets parried AGAIN!",
-            "*Gwyn attempts a flame sword swing...* \nYou: **No.** *Parry.*",
-            "Gwyn: *\"HRAAA—\"* \nYou: **\"Sit down.\"** *Parry.*",
-            "*Sad piano intensifies as Gwyn is parried.*",
-            "Perfect parry! Gwyn should really learn new moves.",
+            "*Gwyn attempts a flame sword swing...* \nYou parry it easily!",
+            "Gwyn: *\"HRAAA—\"* \nYou press L2.",
+            "*Sad piano swells as Gwyn is parried.*",
+            "Perfect parry! Gwyn should really learn new moves...",
+            "The Lord of Cinder stumbles as you parry his attack!",
+            "You parry Gwyn's attack with style and grace!",
+            "Gwyn looks confused as you effortlessly parry his strike.",
+            "With a swift motion, you parry Gwyn's fiery assault!",
         ]
         msg = random.choice(messages)
 
