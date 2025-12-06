@@ -58,8 +58,7 @@ class Parry(commands.Cog):
 
         # Build embed
         embed = discord.Embed(
-            # title=f"Gwyn Parried! 🛡️",
-            title=f"{interaction.user.display_name} Parried Gwyn!",
+            title=f"{interaction.user.display_name} Parries Gwyn!",
             description=msg,
             color=discord.Color.dark_gold()
         )
@@ -67,7 +66,7 @@ class Parry(commands.Cog):
         embed.add_field(name="Total Parries", value=self.parry_data["total"])
         # embed.add_field(name="XP Gained", value=xp_gain)
         # embed.add_field(name="Level", value=f"{old_level} → {user['level']}" if user["level"] > old_level else user["level"])
-        embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
+        # embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
 
         await interaction.response.send_message(embed=embed)
 
