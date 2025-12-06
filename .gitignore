@@ -5,3 +5,4 @@ __pycache__/
 venv/
 env/
 data/ranks.json
+data/parry.json
