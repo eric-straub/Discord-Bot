@@ -60,7 +60,7 @@ class MyBot(commands.Bot):
         """Runs before the bot connects — load cogs here."""
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.rank")
-        await self.load_extension("cogs.parry")
+        # parry cog removed — do not load
 
 
 # Create bot instance

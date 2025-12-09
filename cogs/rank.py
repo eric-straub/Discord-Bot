@@ -100,19 +100,9 @@ class RankSystem(commands.Cog):
         user_id = str(member.id)
         stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
 
-        # Load parry count if available
-        parry_count = 0
-        try:
-            with open("data/parry.json", "r") as f:
-                p = json.load(f)
-                parry_count = p.get("users", {}).get(user_id, 0)
-        except Exception:
-            pass
-
         embed = discord.Embed(title=f"{member.display_name}'s Profile", color=discord.Color.blurple())
         embed.add_field(name="Level", value=stats["level"])
         embed.add_field(name="XP", value=stats["xp"])
-        embed.add_field(name="Parries", value=parry_count)
         embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
 
         await interaction.response.send_message(embed=embed)
