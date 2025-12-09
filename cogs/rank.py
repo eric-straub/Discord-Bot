@@ -4,6 +4,7 @@ from discord import app_commands
 import json
 import os
 import time
+import discord
 
 RANK_FILE = "data/ranks.json"   # Ensure this folder exists
 
@@ -92,6 +93,69 @@ class RankSystem(commands.Cog):
         embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="profile", description="Show a user's profile (XP, level, parries)")
+    async def profile(self, interaction: discord.Interaction, member: discord.Member = None):
+        member = member or interaction.user
+        user_id = str(member.id)
+        stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
+
+        # Load parry count if available
+        parry_count = 0
+        try:
+            with open("data/parry.json", "r") as f:
+                p = json.load(f)
+                parry_count = p.get("users", {}).get(user_id, 0)
+        except Exception:
+            pass
+
+        embed = discord.Embed(title=f"{member.display_name}'s Profile", color=discord.Color.blurple())
+        embed.add_field(name="Level", value=stats["level"])
+        embed.add_field(name="XP", value=stats["xp"])
+        embed.add_field(name="Parries", value=parry_count)
+        embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="xp_set", description="Set a user's XP (admin only)")
+    async def xp_set(self, interaction: discord.Interaction, member: discord.Member, amount: int):
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+            return
+
+        uid = str(member.id)
+        if uid not in self.ranks:
+            self.ranks[uid] = {"xp": 0, "level": 0}
+        self.ranks[uid]["xp"] = max(0, amount)
+        self.ranks[uid]["level"] = calculate_level(self.ranks[uid]["xp"])
+        save_ranks(self.ranks)
+        await interaction.response.send_message(f"Set {member.display_name}'s XP to {self.ranks[uid]['xp']} (Level {self.ranks[uid]['level']}).")
+
+    @app_commands.command(name="xp_add", description="Add XP to a user (admin only)")
+    async def xp_add(self, interaction: discord.Interaction, member: discord.Member, amount: int):
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+            return
+
+        uid = str(member.id)
+        if uid not in self.ranks:
+            self.ranks[uid] = {"xp": 0, "level": 0}
+        self.ranks[uid]["xp"] = max(0, self.ranks[uid]["xp"] + amount)
+        old_level = self.ranks[uid]["level"]
+        self.ranks[uid]["level"] = calculate_level(self.ranks[uid]["xp"])
+        save_ranks(self.ranks)
+        await interaction.response.send_message(f"Added {amount} XP to {member.display_name}. Level: {old_level} → {self.ranks[uid]['level']}")
+
+    @app_commands.command(name="xp_recalc", description="Recalculate levels for all users from XP (admin only)")
+    async def xp_recalc(self, interaction: discord.Interaction):
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+            return
+
+        for uid, data in self.ranks.items():
+            data["level"] = calculate_level(data.get("xp", 0))
+        save_ranks(self.ranks)
+        await interaction.response.send_message("Recalculated levels for all users.")
 
     # Slash Command: /leaderboard
     @app_commands.command(name="leaderboard", description="Show the top users by level")
