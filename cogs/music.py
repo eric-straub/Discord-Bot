@@ -35,7 +35,19 @@ class YTDLSource:
     @classmethod
     async def create(cls, search: str, loop=None, requester=None):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search, download=False))
+        try:
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search, download=False))
+        except Exception as e:
+            msg = str(e)
+            # Detect common yt-dlp message when YouTube requests login/cookies
+            if "Sign in to confirm you\u2019re not a bot" in msg or "use --cookies" in msg.lower() or "cookies-from-browser" in msg.lower():
+                raise RuntimeError(
+                    "yt-dlp failed: YouTube is requesting authentication/cookies. "
+                    "Export browser cookies or use yt-dlp's --cookies-from-browser option. "
+                    "See: https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp"
+                ) from e
+            # propagate other errors
+            raise
 
         # ytdl.extract_info returns dict for single or playlist
         if 'entries' in data:

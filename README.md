@@ -123,6 +123,22 @@ The bot automatically:
 
 ---
 
+## Music notes (yt-dlp)
+
+The `music` cog uses `yt-dlp` and requires the `ffmpeg` binary at runtime. Occasionally YouTube will block direct extraction by requiring an authenticated session ("Sign in to confirm you're not a bot"). When that happens `yt-dlp` will fail unless you provide cookies or an authenticated session.
+
+Options when you see errors mentioning `--cookies` or `--cookies-from-browser`:
+
+- Export cookies from your browser and provide them to `yt-dlp` (example: `cookies.txt`).
+- Use `yt-dlp`'s `--cookies-from-browser` feature to load cookies from a supported browser profile.
+
+See the yt-dlp FAQ for details and examples:
+https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp
+
+When adding or modifying `cogs/music.py`, surface user-friendly messages (the repo already catches and reports these errors). Document any cookie files you expect to exist on the host where the bot runs.
+
+---
+
 ## Logging
 
 The bot logs:
