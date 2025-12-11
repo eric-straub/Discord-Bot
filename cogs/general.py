@@ -168,11 +168,6 @@ class General(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    # Prefix command: !help
-    @commands.command(name="help")
-    async def help_prefix(self, ctx, category: str = None):
-        """Prefix version of help command."""
-        await self.help(ctx, category)
 
 async def setup(bot):
     general = General(bot)

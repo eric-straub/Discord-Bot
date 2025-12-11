@@ -27,6 +27,7 @@ class MyBot(commands.Bot):
             command_prefix="!",
             intents=intents,
             application_id=os.getenv("APPLICATION_ID"),
+            help_command=None,  # Disable built-in help command to avoid conflicts
         )
 
     async def on_error(self, event_method, *args, **kwargs):
