@@ -1,151 +1,95 @@
-# Copilot Instructions for Discord-Bot
+<!-- GitHub Copilot / AI agent instructions for the Discord-Bot repo -->
+# Copilot Instructions — Discord-Bot
 
-## Project Overview
-A Discord bot (using discord.py) with modular cog-based architecture. Features include prefix/slash commands, an XP-based rank system with persistent JSON storage, and per-guild welcome messages. The bot runs on `bot.py` with three core cogs: `general`, `rank`, and `welcome`.
+These notes capture project-specific patterns and developer workflows so an AI coding agent can be immediately productive.
 
-## Architecture & Key Patterns
+1. Project overview
+- **What it is:** A single-process Discord bot using discord.py. Entrypoint is `bot.py` which creates `MyBot`, loads cogs, and calls `bot.run(TOKEN)`.
+- **Major components:**
+  - `bot.py` — bot lifecycle, intents, and cog loading (`setup_hook`).
+  - `cogs/` — individual feature modules (each exports a Cog class and an `async def setup(bot)` that calls `bot.add_cog(...)`).
+  - `data/` — runtime JSON storage (ranks, economy, settings). Files may be created on first use.
+  - `validate_bot.py` — pre-flight checks useful to run before launching or when modifying runtime/config.
 
-### Cog-Based Modularity
-Each feature lives in `cogs/` as a self-contained class inheriting from `commands.Cog`:
-- **Load in `setup_hook()`**: Cogs are loaded async in `bot.py`'s `setup_hook()` method before the bot connects
-- **Async setup function**: Each cog must export `async def setup(bot)` to be discovered by `bot.load_extension()`
-- **Example**: `cogs/rank.py` defines `class RankSystem(commands.Cog)` and ends with `async def setup(bot): await bot.add_cog(RankSystem(bot))`
+2. How to run & common dev commands
+- Install dependencies: `python3 -m pip install -r requirements.txt`.
+- Validate the project: `python3 validate_bot.py` (checks `.env`, syntax, dependencies, and JSON files).
+- Run the bot locally: ensure `.env` contains `DISCORD_TOKEN` and `APPLICATION_ID`, then `python3 bot.py`.
+- Debugging: logging is configured in `bot.py` with `logging.basicConfig(level=logging.DEBUG)` and `MyBot.on_error` prints tracebacks.
 
-### Command Types
-The bot supports both patterns in single cog:
-- **Slash commands**: `@app_commands.command()` — modern, auto-synced via `bot.tree.sync()` on startup
-- **Prefix commands**: `@commands.command()` with `!` prefix — legacy style, auto-loaded
-- See `cogs/general.py` for both examples (e.g., `/ping` slash vs `!ping` prefix)
+3. Cog / command patterns (concrete examples)
+- Cogs live in `cogs/*.py`. Each file defines a `class X(commands.Cog)` and exposes `async def setup(bot): await bot.add_cog(X(bot))` (see `cogs/info.py`).
+- Slash commands use `@app_commands.command(...)` and expect an `interaction: discord.Interaction` parameter. Example: `@app_commands.command(name="userinfo") async def userinfo(self, interaction, member: discord.Member = None):`.
+- When adding a new cog, also add `await self.load_extension("cogs.yourcog")` to `MyBot.setup_hook()` in `bot.py` so it loads on startup.
 
-### Data Persistence
-- **Manual JSON storage** (no ORM): Utility functions `load_*()` and `save_*()` in each cog
-- **File locations**: `data/ranks.json`, `data/welcome.json` (auto-create directories)
-- **User IDs as strings**: Store user IDs as string keys in JSON (e.g., `ranks[str(user_id)]`)
-- **Example pattern in `rank.py`**:
-  ```python
-  def load_ranks(): return json.load(f) if os.path.exists(RANK_FILE) else {}
-  def save_ranks(data): json.dump(data, f, indent=4)
-  ```
+4. Data & configuration conventions
+- `.env` is used for secrets (`DISCORD_TOKEN`, `APPLICATION_ID`). The repo's validator expects `.env` to exist and to be in `.gitignore`.
+- Persistent runtime data is stored as JSON under `data/` (e.g. `data/ranks.json`). `validate_bot.py` treats missing data files as acceptable (created on first use) but flags invalid JSON.
 
-### Event Listeners & Debugging
-- **Listeners**: Use `@commands.Cog.listener()` to hook events (`on_message`, `on_member_join`, etc.)
-- **Logging**: `bot.py` has `on_socket_response()` for gateway event debugging; cogs log to stdout via print()
-- **Error handling**: Wrap risky operations in try/except; in event handlers, don't raise—just return silently
+5. Code style and common gotchas
+- Use `discord.py` idioms: prefer `app_commands` for slash commands, and `commands.Cog` for modular features.
+- Use `interaction.response.send_message(...)` for replies in slash commands (not `ctx.send`). Many cogs reuse helper logic by calling other command methods (see `Info.whois` which calls `self.userinfo`).
+- The built-in help command is disabled in `bot.py` (`help_command=None`). Don't re-enable it unless you intend to replace custom help features.
 
-### Admin Permissions
-Commands that modify state check permissions explicitly:
-```python
-if not interaction.user.guild_permissions.manage_guild:
-    await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
-    return
+6. Adding features safely
+- Before running changes locally, run `python3 -m py_compile bot.py` and `python3 -m py_compile cogs/yourcog.py` (the validator automates this).
+- Run `python3 validate_bot.py` after adding new cogs or data keys — it will surface missing `.env` variables, syntax errors, and JSON problems.
+
+7. Files to inspect when debugging specific concerns
+- Startup / command registration: `bot.py` (look at `setup_hook` and `on_ready` where `bot.tree.sync()` runs).
+- Cog behavior and Discord API usage: `cogs/*.py` (notably `cogs/info.py`, `cogs/welcome.py`, `cogs/rank.py`).
+- Persistent storage: `data/*.json` and code paths that read/write them (search for `open("data/` to locate usages).
+
+```markdown
+# Copilot Instructions — Discord-Bot
+
+These concise notes give an AI coding agent the repo-specific context needed to be productive quickly.
+
+1) Big picture
+- Single-process Discord bot using `discord.py` / `discord.ext.commands`.
+- Entrypoint: `bot.py` — defines `MyBot`, configures `intents`, logging, `setup_hook`, and calls `bot.run(TOKEN)`.
+- Feature modules: `cogs/*.py` — each cog exposes `async def setup(bot)` and registers a `commands.Cog`.
+- Runtime storage: `data/*.json` (ranks, economy, settings). Files are created on first use; validator flags invalid JSON.
+
+2) How the bot starts / loads code
+- `MyBot.setup_hook()` explicitly calls `await self.load_extension("cogs.<name>")` for each cog (see `bot.py`).
+- On `on_ready` the bot runs `await bot.tree.sync()` to register slash commands.
+
+3) Developer workflows & commands (concrete)
+- Install deps: `python3 -m pip install -r requirements.txt`
+- Validate repo before running: `python3 validate_bot.py` (checks `.env`, files, syntax, dependencies, JSON validity).
+- Run locally: ensure `.env` contains `DISCORD_TOKEN` and `APPLICATION_ID`, then `python3 bot.py`.
+
+4) Cog / command conventions (examples)
+- Use `@app_commands.command(...)` for slash commands that receive an `interaction: discord.Interaction`.
+- Reply with `await interaction.response.send_message(...)` (this project prefers interaction responses over `ctx.send`).
+- Each cog file ends with an `async def setup(bot): await bot.add_cog(MyCog(bot))` (see `cogs/info.py`).
+- When adding a new cog, add `await self.load_extension("cogs.<yourcog>")` to `MyBot.setup_hook()` in `bot.py`.
+
+5) Data, secrets & git rules
+- Secrets: use `.env` for `DISCORD_TOKEN` and `APPLICATION_ID`. `validate_bot.py` expects `.env` to exist; `.gitignore` should include `.env` and `data/`.
+- Persistent data lives under `data/` (e.g., `data/ranks.json`, `data/economy.json`). The validator treats absent files as OK but flags invalid JSON.
+
+6) Tests, linting & quick checks
+- Syntax checks are done with `python3 -m py_compile <file>`; `validate_bot.py` runs these for `bot.py` and each cog.
+- The validator also checks for installed packages (`discord`, `dotenv`) and basic project structure.
+
+7) Common gotchas & patterns to preserve
+- Logging is set to `DEBUG` in `bot.py`; many debug prints are used (e.g., `on_socket_response`) — avoid removing them unless replacing with equivalent logging.
+- The built-in help command is disabled (`help_command=None`) — do not re-enable without a replacement.
+- Many commands reuse internal helper calls (e.g., `Info.whois` calls `self.userinfo`) — prefer reuse over duplication.
+
+8) Files to inspect for specific tasks
+- Startup, intent and cog loading: `bot.py`
+- Pre-flight checks: `validate_bot.py`
+- Examples of slash-commands, embeds, and interaction patterns: `cogs/info.py`, `cogs/welcome.py`, `cogs/rank.py`
+- Persistent structures / sample JSON: `data/` (open `data/ranks.json` for the format used)
+
+9) Short checklist for adding a new cog
+- Create `cogs/yourcog.py` with a `commands.Cog` subclass and `async def setup(bot)` that adds the cog.
+- Add `await self.load_extension("cogs.yourcog")` to `MyBot.setup_hook()` in `bot.py`.
+- Run `python3 -m py_compile cogs/yourcog.py` then `python3 validate_bot.py`.
+- Provide example usages in `TESTING.md` or README if behavior is non-obvious.
+
+If you'd like, I can expand the storage format examples (show `data/ranks.json` layout), add a step-by-step PR checklist, or include more code snippets from `cogs/*` for common idioms.
 ```
-
-## Rank System Implementation Details
-
-### Level Formula
-- **Calculation**: `level = int((xp / 50) ** 0.5)` (in `rank.py`)
-- **When to recalculate**: Whenever XP changes; `/xp_recalc` command recalculates all users' levels
-- **Cooldowns**: XP awarded only once per 10 seconds per user (tracked in `self.cooldowns` dict) to prevent spam
-
-### Data Structure
-```json
-{
-  "user_id": {
-    "xp": 1500,
-    "level": 5
-  }
-}
-```
-
-### XP Awards
-- `on_message` listener awards 15–25 XP per non-bot message (random.randint)
-- Returns new level if level-up occurred; bot announces in channel
-- `award_xp()` method handles XP addition and level recalculation atomically
-
-## Welcome System
-
-### Data Structure
-Per-guild welcome config stored as:
-```json
-{
-  "guild_id": {
-    "enabled": true,
-    "channel_id": 123456 or null,
-    "message": "Welcome {user} to {guild}!"
-  }
-}
-```
-- `channel_id` null → DM mode; integer → post in that channel
-- Message placeholders: `{user}` (mention), `{name}` (display name), `{guild}` (guild name)
-
-### Listener & Commands
-- `on_member_join` event sends configured message
-- `/welcome_set`, `/welcome_set_channel`, `/welcome_toggle` manage config (require `manage_guild` perm)
-
-## Slash Command Syncing
-
-- **Auto-sync on startup**: `await bot.tree.sync()` in `on_ready()` event
-- **Full tree** is synced every bot start (not per-guild unless needed)
-- **Important**: Changes to command names/descriptions require bot restart to sync; immediate testing in Discord may show stale commands
-
-## Development Workflow
-
-### Setup & Running
-```bash
-pip install discord.py python-dotenv
-# Create .env with DISCORD_TOKEN and APPLICATION_ID
-python bot.py
-```
-
-### Required Intent Configuration
-Must enable in both Discord Developer Portal (Bot → Privileged Gateway Intents) **and** `bot.py`:
-- `Message Content Intent` (to read message text in `on_message`)
-- `Server Members Intent` (for member count and member lookup)
-- Current intents set in `bot.py`: `intents.message_content = True` and `intents.members = True`
-
-### Debugging
-- `bot.py` logs gateway events (`on_socket_response`); check for `INTERACTION_CREATE` events when testing slash commands
-- `on_interaction` listener in `general.py` logs all interaction types for troubleshooting
-- Set `logging.basicConfig(level=logging.DEBUG)` for verbose discord.py logs
-
-### Adding New Commands
-1. Create or extend a cog in `cogs/`
-2. Add method decorated with `@app_commands.command()` (slash) or `@commands.command()` (prefix)
-3. For slash commands: return fresh cog instance via `async def setup(bot)` if new cog
-4. Load cog in `bot.py`'s `setup_hook()` via `await bot.load_extension("cogs.module_name")`
-5. Restart bot to sync commands to Discord
-
-## Common Patterns & Conventions
-
-### String Keys for IDs
-Always store user/guild IDs as strings in JSON:
-```python
-user_id = str(member.id)  # Convert before storage
-stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
-```
-
-### Ephemeral Responses for Errors/Admin
-Admin-only or sensitive commands use `ephemeral=True`:
-```python
-await interaction.response.send_message("...", ephemeral=True)
-```
-
-### Directory Creation
-Data directory auto-created at import time:
-```python
-os.makedirs("data", exist_ok=True)
-```
-
-### Interaction Response Pattern
-Always respond to interactions immediately:
-```python
-await interaction.response.send_message("...")  # First response
-await interaction.followup.send("...")  # Additional messages
-```
-If response fails, try `defer()` then `followup.send()` (see `general.py` `/test` command).
-
-## Testing & Validation
-- Test slash commands via Discord client; check `on_socket_response` logs for `INTERACTION_CREATE`
-- Test prefix commands by typing in chat (requires `message_content` intent)
-- Verify XP/rank changes persist by restarting bot and checking `data/ranks.json`
-- Validate JSON format: `python -m json.tool data/ranks.json`

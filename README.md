@@ -1,219 +1,139 @@
-# Discord Bot
+# Discord-Bot
 
-A fully-featured Discord bot built with **discord.py** featuring XP/rank system, economy, moderation, and more.
+A lightweight, single-process Discord bot built with discord.py. This repository provides a modular cog-based bot, runtime JSON storage for simple persistent state, and helper scripts to validate and run the bot locally.
 
-## Overview
+## Features
 
-This bot includes:
-- **Slash & prefix commands** for flexibility
-- **XP + leveling system** with automatic rank tracking
-- **Currency economy** with daily rewards and transfers
-- **Moderation tools** (warnings, timeouts, message purge)
-- **Fun commands** (dice, games, magic 8-ball)
-- **Server-wide configuration** (welcome messages, settings, autorole)
-- **Persistent JSON storage** (no database required)
-
----
-
-## Project Structure
-
-```
-Discord-Bot/
-├── bot.py               # Main entry point & event handlers
-├── cogs/                # Modular feature modules
-│   ├── general.py       # Utility commands (ping, help, status)
-│   ├── rank.py          # XP system & leaderboards
-│   ├── welcome.py       # New member greeting
-│   ├── fun.py           # Games & entertainment
-│   ├── info.py          # User & server info
-│   ├── moderation.py    # Warnings, timeouts, purge
-│   ├── economy.py       # Currency & wallets
-│   └── settings.py      # Server configuration
-└── data/                # Persistent storage (auto-created)
-    ├── ranks.json       # User XP & levels
-    ├── economy.json     # Wallet balances
-    ├── welcome.json     # Per-guild welcome config
-    ├── warns.json       # Moderation warnings
-    └── settings.json    # Server settings
-```
-
----
+- Modular cogs in `cogs/` (commands organized by feature)
+- Slash commands using `discord.app_commands`
+- Simple JSON-backed runtime storage in `data/`
+- Pre-flight validation script (`validate_bot.py`) to check environment and repo health
 
 ## Quick Start
 
-### 1. Install Dependencies
-```bash
-pip install discord.py python-dotenv
-```
+Requirements:
 
-### 2. Create `.env` File
-```env
-DISCORD_TOKEN=your_bot_token
-APPLICATION_ID=your_app_id
-```
-
-### 3. Enable Intents in Discord Developer Portal
-- ✅ Message Content Intent
-- ✅ Server Members Intent
-
-### 4. Run the Bot
-```bash
-python bot.py
-```
-
----
-
-## Command Summary
-
-### General Commands
-
-**Slash**: `/ping` `/hello` `/test` `/server_stats` `/help` `/status`
-**Prefix**: `!ping` `!echo <text>`
-
----
-
-### XP + Rank System
-
-Users earn XP automatically by chatting.
-
-* XP gain: **15–25 XP per message**
-* Cooldown: **10 seconds per user**
-* Level formula: `level = sqrt(xp / 50)`
-
-**Commands**: `/rank` `/profile` `/leaderboard` `/topranks` `/xp_leaderboard` `/next_level` `/xp_set` `/xp_add` `/xp_recalc`
-
----
-
-### Welcome System
-
-Greet new members with custom messages. Per-guild configuration with placeholders: `{user}`, `{name}`, `{guild}`.
-
-**Commands**: `/welcome_set` `/welcome_set_channel` `/welcome_toggle` `/welcome_show` `/welcome_help`
-
----
-
-### Fun & Games
-
-**Commands**: `/dice [NdX]` `/coin` `/rps <choice>` `/8ball <question>` `/choose <options>`
-
----
-
-### User & Server Info
-
-**Commands**: `/userinfo` `/serverinfo` `/avatar` `/whois` `/roles`
-
----
-
-### Moderation (Requires `moderate_members`)
-
-Warnings with history, timeouts, and message cleanup.
-
-**Commands**: `/warn` `/warns` `/clearwarn` `/timeout` `/untimeout` `/purge`
-
----
-
-### Economy (Currency)
-
-Simple currency with daily rewards and transfers.
-
-* Currency: 🪙 **Credits**
-* Daily bonus: **100 Credits** (once per 24h)
-
-**Commands**: `/balance` `/daily` `/pay` `/rich` `/give_currency` `/reset_economy`
-
----
-
-### Server Settings (Requires `administrator`)
-
-Per-server configuration: XP toggle, welcome messages, autorole, modlog channel.
-
-**Commands**: `/config_show` `/set_xp_enabled` `/set_modlog_channel` `/set_autorole`
-
----
-
-## Requirements
+- Python 3.8+ (use the interpreter available on your system)
+- `pip` and a virtual environment recommended
 
 Install dependencies:
 
-```
-pip install discord.py python-dotenv
-```
-
-Make sure your bot has the following **intents enabled**:
-
-* Message Content Intent
-* Server Members
-
-These must be enabled both in:
-
-### 1. *Discord Developer Portal → Bot → Privileged Gateway Intents*
-
-### 2. Your code (`bot.py`):
-
-```python
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+```bash
+python3 -m pip install -r requirements.txt
 ```
 
----
+Create a `.env` file in the project root containing the required secrets:
 
-## Environment Configuration
-
-Create a `.env` file:
-
-```
-DISCORD_TOKEN=YOUR_BOT_TOKEN
-APPLICATION_ID=YOUR_APPLICATION_ID
+```text
+DISCORD_TOKEN=<your-bot-token>
+APPLICATION_ID=<your-application-id>
 ```
 
-Where:
+Validate the repo (syntax, env, and JSON checks):
 
-* `DISCORD_TOKEN` = Bot token from the Developer Portal
-* `APPLICATION_ID` = The bot's application ID (same page)
-
----
-
-## Running the Bot
-
+```bash
+python3 validate_bot.py
 ```
+
+Run the bot locally:
+
+```bash
 python3 bot.py
 ```
 
-On startup, you should see:
+If you change slash commands, sync them from the bot by ensuring the bot connects and `bot.tree.sync()` runs on ready.
 
+## Project Structure
+
+- `bot.py` — Bot entrypoint. Defines `MyBot`, intents, and loads cogs in `setup_hook()`.
+- `cogs/` — Feature modules. Each cog exports a `commands.Cog` subclass and an `async def setup(bot)` function that adds the cog.
+- `data/` — Runtime JSON storage (e.g., `ranks.json`). Files are created on first use.
+- `validate_bot.py` — Pre-flight validation script (checks `.env`, syntax, and JSON files).
+- `requirements.txt` — Python dependencies.
+
+## Working with Cogs
+
+Pattern for a cog:
+
+- Define a `class MyCog(commands.Cog)` with commands and listeners.
+- Export `async def setup(bot): await bot.add_cog(MyCog(bot))` at the bottom of the cog file.
+
+When adding a new cog, register its loading in `MyBot.setup_hook()` in `bot.py` by adding:
+
+```py
+await self.load_extension("cogs.yourcog")
 ```
-Slash commands synced.
-Bot is ready.
+
+Slash command pattern:
+
+```py
+@app_commands.command(name="userinfo")
+async def userinfo(self, interaction: discord.Interaction, member: discord.Member = None):
+    await interaction.response.send_message(...)
 ```
 
-The bot automatically:
+## Data & Configuration
 
-* Loads cogs
-* Registers slash commands
-* Syncs the application command tree on startup
+- Secrets: store `DISCORD_TOKEN` and `APPLICATION_ID` in `.env`. The validator expects `.env` to exist.
+- Persistent runtime data is stored as JSON under `data/` (e.g., `data/ranks.json`). The project will create missing files on first use but will warn on invalid JSON.
 
+## Development
 
-## Logging
+Recommended workflow:
 
-The bot logs:
+1. Create and activate a virtual environment.
+2. Install dependencies with `pip install -r requirements.txt`.
+3. Run `python3 -m py_compile bot.py` or `python3 validate_bot.py` to check for syntax issues.
+4. Add your cog to `cogs/` and register it in `bot.py`.
 
-* Gateway events (`INTERACTION_CREATE`, etc.)
-* All received interactions
-* Errors in any command or listener
+Useful commands:
 
-This makes debugging slash commands significantly easier.
+```bash
+# Syntax check for a specific file
+python3 -m py_compile cogs/yourcog.py
 
----
+# Run the validator script
+python3 validate_bot.py
+
+# Start the bot
+python3 bot.py
+```
+
+## Testing & Validation
+
+- `validate_bot.py` performs pre-flight checks including environment variable presence, basic syntax checks, and JSON validation for files under `data/`.
+- When adding new cogs or changing data formats, run `python3 validate_bot.py` before starting the bot.
 
 ## Contributing
 
-Pull requests are welcome!
-To add a new command, create a new cog in `cogs/` and load it via `setup_hook` in `bot.py`.
+Contributions are welcome. Suggested process:
 
----
+1. Open an issue to discuss larger changes.
+2. Create a feature branch from `dev`.
+3. Add or update code and tests where applicable.
+4. Run `python3 validate_bot.py` and any linting or formatting tools you use.
+5. Open a pull request describing the change and any manual steps required.
+
+When adding new public-facing commands, include usage examples and permission expectations in your PR description.
+
+## Deployment & Hosting Notes
+
+- For production hosting, ensure environment secrets are provided via a secure environment mechanism (not committed to the repo).
+- Consider running the bot under a process manager (systemd, supervisord, Docker) and restart-on-failure policies.
 
 ## License
 
-MIT License.
+This repository does not include an explicit license file. If you plan to publish or share this project, add a `LICENSE` file with your chosen license.
 
+## Contact
+
+For questions about the project, open an issue or reach out to the repository owner.
+
+---
+
+If you'd like, I can also:
+
+- Add a short `CONTRIBUTING.md` and a sample `LICENSE`.
+- Commit and push this README to `dev` and open a PR.
+
+If you want me to proceed with committing and pushing, tell me and I will do that next.
