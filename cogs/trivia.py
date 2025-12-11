@@ -54,16 +54,35 @@ class Trivia(commands.Cog):
                 return True
         return False
 
+    def _extract_spoilers(self, content: str) -> list:
+        """Return list of strings found inside spoiler tags (||like this||)."""
+        if not content:
+            return []
+        return re.findall(r"\|\|(.+?)\|\|", content, flags=re.DOTALL)
+
+    def _wrap_spoiler(self, s: str) -> str:
+        """Wrap a string in spoiler tags, avoiding double-wrapping."""
+        if s is None:
+            return "||||"
+        s = str(s).strip()
+        # already wrapped
+        if s.startswith("||") and s.endswith("||"):
+            return s
+        # strip stray pipes then wrap
+        inner = s.strip('|')
+        return f"||{inner}||"
+
     async def _end_trivia(self, channel_id: int, reason: str = "time"):
         trivia = self.active_trivia.get(channel_id)
         if not trivia:
             return
         channel = self.bot.get_channel(channel_id)
         if channel:
+            revealed = self._wrap_spoiler(trivia.get('answer_display', ''))
             if reason == "time":
-                await channel.send(f"⏱️ Trivia ended — no correct answers in time. The answer was: **{trivia['answer_display']}**")
+                await channel.send(f"⏱️ Trivia ended — no correct answers in time. The answer was: {revealed}")
             elif reason == "cancel":
-                await channel.send(f"🛑 Trivia canceled by the asker. The answer was: **{trivia['answer_display']}**")
+                await channel.send(f"🛑 Trivia canceled by the asker. The answer was: {revealed}")
         # cleanup
         self.active_trivia.pop(channel_id, None)
 
@@ -104,6 +123,7 @@ class Trivia(commands.Cog):
         embed = discord.Embed(title="❓ Trivia Time!", color=discord.Color.blurple())
         embed.add_field(name="Question", value=question, inline=False)
         embed.add_field(name="Rewards", value=f"{trivia['xp']} XP • {trivia['credits']} credits", inline=True)
+        embed.add_field(name="How to answer", value="Reply with your answer inside spoiler tags, e.g. `||your answer||`. Only answers in spoilers will be considered.", inline=False)
         embed.set_footer(text=f"Posted by {interaction.user.display_name} — answers accepted for {duration} seconds")
 
         posted = await channel.send(embed=embed)
