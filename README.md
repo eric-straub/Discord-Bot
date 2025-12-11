@@ -1,8 +1,17 @@
+# Discord Bot
+
+A fully-featured Discord bot built with **discord.py** featuring XP/rank system, economy, moderation, and more.
+
 ## Overview
 
-This Discord bot is built using **discord.py**, supports both **prefix commands** (`!ping`, `!echo`, etc.) and **slash commands** (`/ping`, `/rank`, `/leaderboard`, etc.), and includes a complete **XP + leveling rank system**.
-
-It uses a modular architecture with **cogs**, automatic command syncing, event logging for debugging, and persistent storage through JSON files.
+This bot includes:
+- **Slash & prefix commands** for flexibility
+- **XP + leveling system** with automatic rank tracking
+- **Currency economy** with daily rewards and transfers
+- **Moderation tools** (warnings, timeouts, message purge)
+- **Fun commands** (dice, games, magic 8-ball)
+- **Server-wide configuration** (welcome messages, settings, autorole)
+- **Persistent JSON storage** (no database required)
 
 ---
 
@@ -10,28 +19,56 @@ It uses a modular architecture with **cogs**, automatic command syncing, event l
 
 ```
 Discord-Bot/
-│
-├── bot.py               # Main entry point
-├── data/
-│   └── ranks.json       # Stored XP + Level data (auto-created)
-└── cogs/
-    ├── general.py       # General commands (prefix + slash)
-    └── rank.py          # Rank system + leaderboard
+├── bot.py               # Main entry point & event handlers
+├── cogs/                # Modular feature modules
+│   ├── general.py       # Utility commands (ping, help, status)
+│   ├── rank.py          # XP system & leaderboards
+│   ├── welcome.py       # New member greeting
+│   ├── fun.py           # Games & entertainment
+│   ├── info.py          # User & server info
+│   ├── moderation.py    # Warnings, timeouts, purge
+│   ├── economy.py       # Currency & wallets
+│   └── settings.py      # Server configuration
+└── data/                # Persistent storage (auto-created)
+    ├── ranks.json       # User XP & levels
+    ├── economy.json     # Wallet balances
+    ├── welcome.json     # Per-guild welcome config
+    ├── warns.json       # Moderation warnings
+    └── settings.json    # Server settings
 ```
 
 ---
 
-## Features
+## Quick Start
+
+### 1. Install Dependencies
+```bash
+pip install discord.py python-dotenv
+```
+
+### 2. Create `.env` File
+```env
+DISCORD_TOKEN=your_bot_token
+APPLICATION_ID=your_app_id
+```
+
+### 3. Enable Intents in Discord Developer Portal
+- ✅ Message Content Intent
+- ✅ Server Members Intent
+
+### 4. Run the Bot
+```bash
+python bot.py
+```
+
+---
+
+## Command Summary
 
 ### General Commands
 
-| Type   | Command        | Description                               |
-| ------ | -------------- | ----------------------------------------- |
-| Slash  | `/ping`        | Show latency                              |
-| Slash  | `/hello`       | Say hello                                 |
-| Slash  | `/test`        | Tests slash command functionality         |
-| Prefix | `!ping`        | Checks latency using prefix-style command |
-| Prefix | `!echo <text>` | Repeats your message                      |
+**Slash**: `/ping` `/hello` `/test` `/server_stats` `/help` `/status`
+**Prefix**: `!ping` `!echo <text>`
 
 ---
 
@@ -41,21 +78,56 @@ Users earn XP automatically by chatting.
 
 * XP gain: **15–25 XP per message**
 * Cooldown: **10 seconds per user**
-* Level formula:
+* Level formula: `level = sqrt(xp / 50)`
 
-  ```
-  level = sqrt(xp / 50)
-  ```
-* Level-up announcements in the channel
-* Data saved persistently to `data/ranks.json`
+**Commands**: `/rank` `/profile` `/leaderboard` `/topranks` `/xp_leaderboard` `/next_level` `/xp_set` `/xp_add` `/xp_recalc`
 
-#### Slash Commands
+---
 
-| Command        | Description                |
-| -------------- | -------------------------- |
-| `/rank`        | Check your level + XP      |
-| `/rank @user`  | Check someone else’s stats |
-| `/leaderboard` | Shows top 10 users by XP   |
+### Welcome System
+
+Greet new members with custom messages. Per-guild configuration with placeholders: `{user}`, `{name}`, `{guild}`.
+
+**Commands**: `/welcome_set` `/welcome_set_channel` `/welcome_toggle` `/welcome_show` `/welcome_help`
+
+---
+
+### Fun & Games
+
+**Commands**: `/dice [NdX]` `/coin` `/rps <choice>` `/8ball <question>` `/choose <options>`
+
+---
+
+### User & Server Info
+
+**Commands**: `/userinfo` `/serverinfo` `/avatar` `/whois` `/roles`
+
+---
+
+### Moderation (Requires `moderate_members`)
+
+Warnings with history, timeouts, and message cleanup.
+
+**Commands**: `/warn` `/warns` `/clearwarn` `/timeout` `/untimeout` `/purge`
+
+---
+
+### Economy (Currency)
+
+Simple currency with daily rewards and transfers.
+
+* Currency: 🪙 **Credits**
+* Daily bonus: **100 Credits** (once per 24h)
+
+**Commands**: `/balance` `/daily` `/pay` `/rich` `/give_currency` `/reset_economy`
+
+---
+
+### Server Settings (Requires `administrator`)
+
+Per-server configuration: XP toggle, welcome messages, autorole, modlog channel.
+
+**Commands**: `/config_show` `/set_xp_enabled` `/set_modlog_channel` `/set_autorole`
 
 ---
 

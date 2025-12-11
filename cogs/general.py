@@ -97,5 +97,84 @@ class General(commands.Cog):
     async def on_command_error(self, ctx, error):
         await ctx.send(f"Error: {error}")
 
+    # Slash command: /help — show available commands
+    @app_commands.command(name="help", description="Get help on available commands")
+    async def help(self, interaction: discord.Interaction, category: str = None):
+        """Show help for commands. Categories: general, rank, fun, info, moderation, economy."""
+        categories_desc = {
+            "general": "General utility commands (ping, echo, server stats)",
+            "rank": "Rank and XP system (rank, leaderboard, profile)",
+            "fun": "Fun and games (dice, coin, rock-paper-scissors)",
+            "info": "Information commands (userinfo, serverinfo, avatar)",
+            "moderation": "Moderation tools (warn, timeout, purge)",
+            "economy": "Currency and wallet system (balance, pay, daily)"
+        }
+
+        if category and category.lower() not in categories_desc:
+            await interaction.response.send_message(
+                f"Unknown category. Available: {', '.join(categories_desc.keys())}",
+                ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(
+            title="📚 Help — Available Commands",
+            color=discord.Color.blurple(),
+            description="Use `/help <category>` for detailed info on a category."
+        )
+
+        if not category:
+            for cat, desc in categories_desc.items():
+                embed.add_field(name=cat.capitalize(), value=desc, inline=False)
+        else:
+            cat = category.lower()
+            embed.title = f"📚 Help — {cat.capitalize()} Commands"
+            embed.description = categories_desc[cat]
+            
+            # Add example commands per category
+            examples = {
+                "general": "`/ping`, `/hello`, `/server_stats`, `!echo <text>`",
+                "rank": "`/rank`, `/leaderboard`, `/profile`, `/next_level`",
+                "fun": "`/dice 2d20`, `/coin`, `/rps rock`, `/8ball <question>`, `/choose <opt1>, <opt2>`",
+                "info": "`/userinfo`, `/serverinfo`, `/avatar`, `/whois <name>`, `/roles`",
+                "moderation": "`/warn <user>`, `/warns <user>`, `/timeout <user> 1h`, `/purge 5`",
+                "economy": "`/balance`, `/daily`, `/pay <user> 50`, `/rich`"
+            }
+            embed.add_field(name="Examples", value=examples[cat], inline=False)
+
+        await interaction.response.send_message(embed=embed)
+
+    # Slash command: /status — show bot status
+    @app_commands.command(name="status", description="Check bot status and uptime")
+    async def status(self, interaction: discord.Interaction):
+        """Display bot status, latency, and uptime."""
+        import time
+        from datetime import datetime, timedelta
+
+        uptime_seconds = time.time() - self.bot.start_time if hasattr(self.bot, 'start_time') else 0
+        uptime = timedelta(seconds=int(uptime_seconds))
+
+        latency = round(self.bot.latency * 1000)
+
+        embed = discord.Embed(
+            title="🤖 Bot Status",
+            color=discord.Color.green(),
+            timestamp=datetime.utcnow()
+        )
+        embed.add_field(name="Status", value="🟢 Online", inline=True)
+        embed.add_field(name="Latency", value=f"{latency} ms", inline=True)
+        embed.add_field(name="Uptime", value=str(uptime), inline=True)
+        embed.add_field(name="Version", value="1.0.0", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
+    # Prefix command: !help
+    @commands.command(name="help")
+    async def help_prefix(self, ctx, category: str = None):
+        """Prefix version of help command."""
+        await self.help(ctx, category)
+
 async def setup(bot):
-    await bot.add_cog(General(bot))
+    general = General(bot)
+    bot.start_time = __import__('time').time()  # Track bot start time
+    await bot.add_cog(general)

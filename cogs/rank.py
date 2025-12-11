@@ -149,19 +149,29 @@ class RankSystem(commands.Cog):
 
     # Slash Command: /leaderboard
     @app_commands.command(name="leaderboard", description="Show the top users by level")
-    async def leaderboard(self, interaction: discord.Interaction):
+    async def leaderboard(self, interaction: discord.Interaction, page: int = 1):
+        """Display the server leaderboard (10 users per page)."""
         sorted_users = sorted(
             self.ranks.items(),
             key=lambda x: x[1]["xp"],
             reverse=True
         )
 
+        # Pagination
+        per_page = 10
+        total_pages = (len(sorted_users) + per_page - 1) // per_page
+        if page < 1 or page > total_pages:
+            page = 1
+
+        start = (page - 1) * per_page
+        end = start + per_page
+
         embed = discord.Embed(
             title="🏆 Server Leaderboard",
             color=discord.Color.gold()
         )
 
-        for i, (user_id, data) in enumerate(sorted_users[:10], start=1):
+        for i, (user_id, data) in enumerate(sorted_users[start:end], start=start + 1):
             user = interaction.guild.get_member(int(user_id))
             name = user.display_name if user else f"Unknown ({user_id})"
 
@@ -170,6 +180,86 @@ class RankSystem(commands.Cog):
                 value=f"Level {data['level']} • {data['xp']} XP",
                 inline=False
             )
+
+        embed.set_footer(text=f"Page {page} of {total_pages}")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="topranks", description="Show top 10 players by XP")
+    async def topranks(self, interaction: discord.Interaction):
+        """Quick view of top 10 ranked players."""
+        sorted_users = sorted(
+            self.ranks.items(),
+            key=lambda x: x[1]["xp"],
+            reverse=True
+        )
+
+        text = "🏆 **Top 10 Players**\n\n"
+        for i, (user_id, data) in enumerate(sorted_users[:10], start=1):
+            user = interaction.guild.get_member(int(user_id))
+            name = user.display_name if user else "Unknown"
+            text += f"{i}. {name} — Lvl {data['level']} ({data['xp']} XP)\n"
+
+        await interaction.response.send_message(text)
+
+    @app_commands.command(name="xp_leaderboard", description="Show leaderboard sorted by total XP gained")
+    async def xp_leaderboard(self, interaction: discord.Interaction):
+        """Show top users by raw XP count."""
+        sorted_users = sorted(
+            self.ranks.items(),
+            key=lambda x: x[1].get("xp", 0),
+            reverse=True
+        )
+
+        embed = discord.Embed(
+            title="📊 XP Leaderboard",
+            color=discord.Color.purple()
+        )
+
+        for i, (user_id, data) in enumerate(sorted_users[:15], start=1):
+            user = interaction.guild.get_member(int(user_id))
+            name = user.display_name if user else f"Unknown ({user_id})"
+            embed.add_field(
+                name=f"#{i} — {name}",
+                value=f"{data.get('xp', 0)} XP",
+                inline=False
+            )
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="next_level", description="See how much XP you need for the next level")
+    async def next_level(self, interaction: discord.Interaction, member: discord.Member = None):
+        """Show progress to next level."""
+        member = member or interaction.user
+        user_id = str(member.id)
+        stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
+
+        current_xp = stats["xp"]
+        current_level = stats["level"]
+        next_level = current_level + 1
+
+        # XP needed: level = sqrt(xp / 50), so xp = level^2 * 50
+        current_level_xp = int((current_level ** 2) * 50)
+        next_level_xp = int((next_level ** 2) * 50)
+
+        xp_in_level = current_xp - current_level_xp
+        xp_needed = next_level_xp - current_xp
+
+        # Progress bar
+        total_in_level = next_level_xp - current_level_xp
+        progress = xp_in_level / total_in_level if total_in_level > 0 else 0
+        bar_length = 20
+        filled = int(bar_length * progress)
+        bar = "█" * filled + "░" * (bar_length - filled)
+
+        embed = discord.Embed(
+            title=f"{member.display_name}'s Progress",
+            color=discord.Color.blurple()
+        )
+        embed.add_field(name="Current Level", value=current_level, inline=True)
+        embed.add_field(name="Next Level", value=next_level, inline=True)
+        embed.add_field(name="Progress", value=f"`{bar}` {progress*100:.1f}%", inline=False)
+        embed.add_field(name="XP in Level", value=f"{xp_in_level}/{total_in_level}", inline=True)
+        embed.add_field(name="XP Needed", value=f"{xp_needed} more", inline=True)
 
         await interaction.response.send_message(embed=embed)
 

@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 
 import discord
 from discord.ext import commands
@@ -35,6 +36,23 @@ class MyBot(commands.Bot):
         print(f"Unhandled exception in event: {event_method}")
         traceback.print_exc()
 
+    async def on_member_join_autorole(self, member: discord.Member):
+        """Auto-assign role to new members if configured."""
+        try:
+            settings_file = "data/settings.json"
+            if os.path.exists(settings_file):
+                with open(settings_file, "r") as f:
+                    settings = json.load(f)
+                    gid = str(member.guild.id)
+                    config = settings.get(gid, {})
+                    if config.get("autorole_enabled") and config.get("autorole_id"):
+                        role = member.guild.get_role(int(config["autorole_id"]))
+                        if role:
+                            await member.add_roles(role)
+                            print(f"[autorole] Assigned {role.name} to {member}")
+        except Exception as e:
+            print(f"Autorole assignment failed: {e}")
+
     async def on_socket_response(self, msg):
         """
         Log important gateway events to help debug interaction issues.
@@ -61,6 +79,11 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.rank")
         await self.load_extension("cogs.welcome")
+        await self.load_extension("cogs.fun")
+        await self.load_extension("cogs.info")
+        await self.load_extension("cogs.moderation")
+        await self.load_extension("cogs.economy")
+        await self.load_extension("cogs.settings")
 
 
 # Create bot instance
