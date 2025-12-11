@@ -3,7 +3,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Info(commands.Cog):
@@ -18,7 +18,7 @@ class Info(commands.Cog):
         member = member or interaction.user
 
         # Calculate account age
-        account_age = datetime.utcnow() - member.created_at
+        account_age = datetime.now(timezone.utc) - member.created_at
         days = account_age.days
         hours = (account_age.seconds // 3600) % 24
 
@@ -41,7 +41,7 @@ class Info(commands.Cog):
         embed = discord.Embed(
             title=f"User Info — {member.display_name}",
             color=member.color or discord.Color.blue(),
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
 
@@ -71,7 +71,7 @@ class Info(commands.Cog):
 
         # Creation date
         created = guild.created_at.strftime("%Y-%m-%d")
-        age_days = (datetime.utcnow() - guild.created_at).days
+        age_days = (datetime.now(timezone.utc) - guild.created_at).days
 
         # Verification level
         verify_level = {
@@ -86,7 +86,7 @@ class Info(commands.Cog):
         embed = discord.Embed(
             title=f"{guild.name}",
             color=discord.Color.blurple(),
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
 
@@ -151,7 +151,7 @@ class Info(commands.Cog):
         embed = discord.Embed(
             title=f"Roles in {guild.name}",
             color=discord.Color.blurple(),
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         for role in roles_list[:25]:  # Limit to 25 roles per embed
