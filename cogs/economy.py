@@ -158,13 +158,24 @@ class Economy(commands.Cog):
             reverse=True
         )
 
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
+            return
+
+        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
+
+        if not guild_users:
+            await interaction.response.send_message("No economy data for members on this server.")
+            return
+
         embed = discord.Embed(
             title="💰 Richest Members",
             color=discord.Color.gold()
         )
 
-        for i, (user_id, data) in enumerate(sorted_users[:10], start=1):
-            user = interaction.guild.get_member(int(user_id))
+        for i, (user_id, data) in enumerate(guild_users[:10], start=1):
+            user = guild.get_member(int(user_id))
             name = user.display_name if user else f"Unknown ({user_id})"
             balance = data["balance"]
             embed.add_field(

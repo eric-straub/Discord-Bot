@@ -157,9 +157,21 @@ class RankSystem(commands.Cog):
             reverse=True
         )
 
+        # Filter to members present in this guild
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
+            return
+
+        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
+
         # Pagination
         per_page = 10
-        total_pages = (len(sorted_users) + per_page - 1) // per_page
+        total_pages = (len(guild_users) + per_page - 1) // per_page
+        if total_pages == 0:
+            await interaction.response.send_message("No ranked members found on this server.")
+            return
+
         if page < 1 or page > total_pages:
             page = 1
 
@@ -171,8 +183,8 @@ class RankSystem(commands.Cog):
             color=discord.Color.gold()
         )
 
-        for i, (user_id, data) in enumerate(sorted_users[start:end], start=start + 1):
-            user = interaction.guild.get_member(int(user_id))
+        for i, (user_id, data) in enumerate(guild_users[start:end], start=start + 1):
+            user = guild.get_member(int(user_id))
             name = user.display_name if user else f"Unknown ({user_id})"
 
             embed.add_field(
@@ -193,11 +205,23 @@ class RankSystem(commands.Cog):
             reverse=True
         )
 
+        # Filter to guild members
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
+            return
+
+        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
+
         text = "🏆 **Top 10 Players**\n\n"
-        for i, (user_id, data) in enumerate(sorted_users[:10], start=1):
-            user = interaction.guild.get_member(int(user_id))
+        for i, (user_id, data) in enumerate(guild_users[:10], start=1):
+            user = guild.get_member(int(user_id))
             name = user.display_name if user else "Unknown"
             text += f"{i}. {name} — Lvl {data['level']} ({data['xp']} XP)\n"
+
+        if len(guild_users) == 0:
+            await interaction.response.send_message("No ranked members found on this server.")
+            return
 
         await interaction.response.send_message(text)
 
@@ -210,13 +234,24 @@ class RankSystem(commands.Cog):
             reverse=True
         )
 
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
+            return
+
+        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
+
+        if len(guild_users) == 0:
+            await interaction.response.send_message("No ranked members found on this server.")
+            return
+
         embed = discord.Embed(
             title="📊 XP Leaderboard",
             color=discord.Color.purple()
         )
 
-        for i, (user_id, data) in enumerate(sorted_users[:15], start=1):
-            user = interaction.guild.get_member(int(user_id))
+        for i, (user_id, data) in enumerate(guild_users[:15], start=1):
+            user = guild.get_member(int(user_id))
             name = user.display_name if user else f"Unknown ({user_id})"
             embed.add_field(
                 name=f"#{i} — {name}",
