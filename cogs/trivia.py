@@ -87,10 +87,10 @@ class Trivia(commands.Cog):
         self.active_trivia.pop(channel_id, None)
 
     @app_commands.command(name="trivia_post", description="Post a trivia question for others to answer")
-    async def trivia_post(self, interaction: discord.Interaction, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 60):
+    async def trivia_post(self, interaction: discord.Interaction, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 10):
         """Post a trivia question. `answer` may include multiple acceptable answers separated by `,` or `|`.
 
-        `xp` and `credits` specify rewards for the first correct answer. `duration` is seconds to wait for an answer.
+        `xp` and `credits` specify rewards for the first correct answer. `duration` is minutes to wait for an answer.
         """
         await interaction.response.defer()
 
@@ -115,7 +115,7 @@ class Trivia(commands.Cog):
             "answer_display": answer,
             "xp": max(0, xp),
             "credits": max(0, credits),
-            "ends_at": time.time() + max(5, duration),
+            "ends_at": time.time() + max(1, duration) * 60,
             "task": None
         }
 
@@ -124,7 +124,7 @@ class Trivia(commands.Cog):
         embed.add_field(name="Question", value=question, inline=False)
         embed.add_field(name="Rewards", value=f"{trivia['xp']} XP • {trivia['credits']} credits", inline=True)
         embed.add_field(name="How to answer", value="Reply with your answer inside spoiler tags, e.g. `||your answer||`. Only answers in spoilers will be considered.", inline=False)
-        embed.set_footer(text=f"Posted by {interaction.user.display_name} — answers accepted for {duration} seconds")
+        embed.set_footer(text=f"Posted by {interaction.user.display_name} — answers accepted for {duration} minute{'s' if duration != 1 else ''}")
 
         posted = await channel.send(embed=embed)
 
@@ -229,8 +229,8 @@ class Trivia(commands.Cog):
             self.active_trivia.pop(channel.id, None)
 
     @commands.command(name="trivia_post")
-    async def trivia_post_prefix(self, ctx, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 60):
-        """Prefix wrapper: !trivia_post <question> <answer> [xp] [credits] [duration_seconds]
+    async def trivia_post_prefix(self, ctx, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 10):
+        """Prefix wrapper: !trivia_post <question> <answer> [xp] [credits] [duration_minutes]
         Note: space-separated args may be awkward; prefer using slash command.
         """
         # Provide a simple compatibility wrapper that forwards to the slash handler
