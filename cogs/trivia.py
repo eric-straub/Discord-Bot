@@ -179,9 +179,19 @@ class Trivia(commands.Cog):
         if not trivia:
             return
 
-        content = message.content.strip()
-        # use fuzzy matching against accepted answers
-        if self._is_match(content, trivia['answers']):
+        # Extract content from spoiler tags only
+        spoilers = self._extract_spoilers(message.content)
+        if not spoilers:
+            return
+        
+        # Check if any spoiler content matches the answer
+        matched = False
+        for spoiler_content in spoilers:
+            if self._is_match(spoiler_content, trivia['answers']):
+                matched = True
+                break
+        
+        if matched:
             # first correct answer wins
             asker_id = trivia.get('asker_id')
             if message.author.id == asker_id:

@@ -11,11 +11,13 @@ This repository is a small Discord bot built with `discord.py` using a Cog-based
 - Cog-based modularity: each file in `cogs/` implements a `commands.Cog` subclass and provides both slash and/or prefix commands where needed. Cogs are registered by `bot.setup_hook()` in `bot.py`.
 - Interaction flow: slash commands are implemented with `@app_commands.command` and respond via `interaction.response.*` or `interaction.followup.*`. Prefix commands use `@commands.command` and the standard `ctx` pattern.
 - Persistent data: small JSON files under `data/` are lazily created/updated by cogs. `validate_bot.py` expects those files (or will note they will be created on first use).
+- Cross-cog communication: Cogs access each other's functionality via `self.bot.get_cog('CogName')` and call public methods directly (example: `cogs/trivia.py` calls `RankSystem.award_xp()` and `Economy._add_balance()` to reward winners).
 
 **Key developer workflows**
 
 - Run pre-flight checks: `python3 validate_bot.py` — this checks `.env`, required files, cog syntax, and installed dependencies.
 - Run the bot locally: create a `.env` with `DISCORD_TOKEN` and `APPLICATION_ID`, then `python3 bot.py`.
+- Slash command sync: happens automatically in `bot.on_ready()` via `await bot.tree.sync()` — no manual sync needed during development.
 - Linting / syntax: The repo relies on `python -m py_compile` checks in `validate_bot.py`; use your normal formatter (e.g. `black`) if desired but keep minimal diffs.
 
 **Project-specific conventions**
@@ -24,11 +26,15 @@ This repository is a small Discord bot built with `discord.py` using a Cog-based
 - Cog setup: Always include an `async def setup(bot)` at the bottom of new cog files and register any bot-level state there (examples: `bot.start_time = time.time()`).
 - Error handling: handlers often catch exceptions locally and print for visibility, and slash handlers sometimes `defer()` then `followup.send()` when immediate responses fail. Follow this pattern for resilient interactive handlers.
 - Data handling: read/write JSON in `data/` using simple `json.load`/`json.dump` patterns. The validator accepts missing data files (they are created on first use) but flags malformed JSON.
+- User IDs in JSON: always store Discord user IDs as strings (e.g., `"89161521543811072"`), not integers, for JSON compatibility.
+- Background tasks: use `self.bot.loop.create_task()` for async watchers (see `cogs/trivia.py` for timer-based game logic); always store task references and cancel them on cleanup.
+- Cooldowns: implement per-user cooldowns with `time.time()` comparisons stored in instance dicts (see `cogs/rank.py` XP cooldown — 10 seconds between awards).
 
 **Integration & dependencies**
 
 - Primary runtime dependency: `discord.py` (imported as `discord`). Secondary: `python-dotenv` to load `.env`.
 - `requirements.txt` lists pinned packages for the environment; match those when running in CI or locally.
+- Intents required: `message_content`, `members`, `presences` (set in `bot.py`).
 
 **When editing or adding Cogs**
 
@@ -55,10 +61,14 @@ Follow these rules when changing code:
 - Register the cog module name in `bot.setup_hook()` if it should load by default.
 - Keep heavy I/O and blocking work off the event loop (use `asyncio.to_thread` or background tasks if needed).
 - Use the existing lightweight logging/print patterns rather than introducing heavy logging frameworks without consensus.
+- When cogs need to communicate, define clear public methods (prefixed without underscore) or protected helpers (prefixed with `_` for internal use only).
 
 **Files & places to check for examples**
 
 - Command patterns: `cogs/general.py`, `cogs/rank.py`
+- Cross-cog integration: `cogs/trivia.py` (calls RankSystem and Economy)
+- Background tasks & timers: `cogs/trivia.py` (async watcher pattern)
+- Event listeners: `cogs/rank.py` (`on_message` for XP gain)
 - Setup & lifecycle: `bot.py` and `cogs/*` `setup` functions
 - Pre-run checks: `validate_bot.py`
 - Data formats & docs: `data/` and `docs/*.md` (see `docs/data-format.md`)
