@@ -187,7 +187,7 @@ class General(commands.Cog):
         embed.add_field(name="Status", value="🟢 Online", inline=True)
         embed.add_field(name="Latency", value=f"{latency} ms", inline=True)
         embed.add_field(name="Uptime", value=str(uptime), inline=True)
-        embed.add_field(name="Version", value="1.0.0", inline=True)
+        embed.add_field(name="Version", value="0.1.0", inline=True)
 
         await interaction.response.send_message(embed=embed)
 
