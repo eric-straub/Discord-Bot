@@ -86,6 +86,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.economy")
         await self.load_extension("cogs.settings")
         await self.load_extension("cogs.trivia")
+        await self.load_extension("cogs.casino")
 
 
 # Create bot instance
