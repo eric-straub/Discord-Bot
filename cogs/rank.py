@@ -4,7 +4,9 @@ from discord import app_commands
 import json
 import os
 import time
-import discord
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import is_admin
 
 RANK_FILE = "data/ranks.json"   # Ensure this folder exists
 
@@ -109,8 +111,8 @@ class RankSystem(commands.Cog):
 
     @app_commands.command(name="xp_set", description="Set a user's XP (admin only)")
     async def xp_set(self, interaction: discord.Interaction, member: discord.Member, amount: int):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         uid = str(member.id)
@@ -123,8 +125,8 @@ class RankSystem(commands.Cog):
 
     @app_commands.command(name="xp_add", description="Add XP to a user (admin only)")
     async def xp_add(self, interaction: discord.Interaction, member: discord.Member, amount: int):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         uid = str(member.id)
@@ -138,8 +140,8 @@ class RankSystem(commands.Cog):
 
     @app_commands.command(name="xp_recalc", description="Recalculate levels for all users from XP (admin only)")
     async def xp_recalc(self, interaction: discord.Interaction):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         for uid, data in self.ranks.items():

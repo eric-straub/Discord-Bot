@@ -6,6 +6,9 @@ from discord import app_commands
 import json
 import os
 from datetime import timedelta, datetime
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import is_admin
 
 WARN_FILE = "data/warns.json"
 os.makedirs("data", exist_ok=True)
@@ -33,8 +36,8 @@ class Moderation(commands.Cog):
         self.warns = load_warns()
 
     def _require_mod(self, interaction: discord.Interaction) -> bool:
-        """Check if user has moderate_members permission."""
-        return interaction.user.guild_permissions.moderate_members
+        """Check if user has moderate_members permission or is an admin."""
+        return is_admin(interaction.user.id) or interaction.user.guild_permissions.moderate_members
 
     @app_commands.command(name="warn", description="Warn a member (mod only)")
     async def warn(self, interaction: discord.Interaction, member: discord.Member, *, reason: str = "No reason provided"):

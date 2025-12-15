@@ -80,7 +80,10 @@ python3 -m pip install -r requirements.txt
 ```env
 DISCORD_TOKEN=your-bot-token
 APPLICATION_ID=your-application-id
+ADMIN_IDS=123456789,987654321
 ```
+
+**Note:** `ADMIN_IDS` is a comma-separated list of Discord user IDs who can use admin/moderation commands regardless of server permissions.
 
 5. Optional: run the pre-flight validator to catch issues:
 
@@ -96,7 +99,8 @@ python3 bot.py
 
 ## Configuration
 
-- The bot reads `DISCORD_TOKEN` and `APPLICATION_ID` from a `.env` file (via `python-dotenv`).
+- The bot reads `DISCORD_TOKEN`, `APPLICATION_ID`, and `ADMIN_IDS` from a `.env` file (via `python-dotenv`).
+  - `ADMIN_IDS`: Comma-separated list of Discord user IDs authorized to use admin/moderation commands.
 - Per-guild settings and feature data live in `data/` as JSON files (for example `data/settings.json`, `data/ranks.json`). These are created/managed by the cogs at runtime.
 - Keep secrets out of version control. Use environment variables or a secrets manager in production.
 

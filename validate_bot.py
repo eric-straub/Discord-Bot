@@ -80,6 +80,11 @@ def main():
             "APPLICATION_ID=" in env_content,
             ".env contains APPLICATION_ID"
         )
+        validator.check(
+            "ADMIN_IDS=" in env_content,
+            ".env contains ADMIN_IDS (comma-separated user IDs for admin commands)",
+            is_error=False
+        )
     
     # ===== File Structure Checks =====
     print("\n📂 Checking file structure...")

@@ -7,6 +7,9 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import is_admin
 
 ECONOMY_FILE = "data/economy.json"
 os.makedirs("data", exist_ok=True)
@@ -189,9 +192,9 @@ class Economy(commands.Cog):
     @app_commands.command(name="give_currency", description="Give currency to a user (admin only)")
     async def give_currency(self, interaction: discord.Interaction, member: discord.Member, amount: int):
         """Admin command to grant currency."""
-        if not interaction.user.guild_permissions.administrator:
+        if not is_admin(interaction.user.id):
             await interaction.response.send_message(
-                "Missing permissions (administrator).",
+                "Missing permissions (admin only).",
                 ephemeral=True
             )
             return
@@ -208,9 +211,9 @@ class Economy(commands.Cog):
     @app_commands.command(name="reset_economy", description="Reset all economy data (admin only)")
     async def reset_economy(self, interaction: discord.Interaction, confirm: bool = False):
         """Reset all currency balances (requires confirmation)."""
-        if not interaction.user.guild_permissions.administrator:
+        if not is_admin(interaction.user.id):
             await interaction.response.send_message(
-                "Missing permissions (administrator).",
+                "Missing permissions (admin only).",
                 ephemeral=True
             )
             return
