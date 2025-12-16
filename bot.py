@@ -73,6 +73,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.rank")
         await self.load_extension("cogs.fun")
+        await self.load_extension("cogs.games")
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.economy")
         await self.load_extension("cogs.settings")

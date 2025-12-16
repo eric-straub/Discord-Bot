@@ -77,6 +77,7 @@ Current cogs in production (loaded by `bot.setup_hook()`):
 - `trivia` — interactive trivia questions with spoiler-based answers, fuzzy matching, XP/credit rewards
 - `casino` — blackjack gambling game with betting mechanics
 - `fun` — dice rolls (NdX format), coin flip, 8ball, rock-paper-scissors, random choice
+- `games` — interactive games (Pong, Snake, Conway's Game of Life) with button controls and auto-updates
 
 Data files (JSON in `data/`):
 - `ranks.json` — `{"user_id": {"xp": int, "level": int}}` - Level formula: `floor(sqrt(xp / 50))`

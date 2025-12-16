@@ -29,11 +29,12 @@ This bot is designed to be a clear, maintainable starting point for small-to-med
 
 ## Features
 
-- **Modular Cogs** (`cogs/`): `general`, `economy`, `rank`, `moderation`, `trivia`, `casino`, `fun`, `settings`
+- **Modular Cogs** (`cogs/`): `general`, `economy`, `rank`, `moderation`, `trivia`, `casino`, `fun`, `games`, `settings`
 - **Dual Command Support**: Slash commands (`/`) and prefix commands where appropriate
 - **Rank System**: XP-based leveling with message activity tracking and leaderboards
 - **Economy System**: Currency system with daily rewards, balance tracking, and casino games
 - **Casino Games**: Blackjack with betting mechanics
+- **Interactive Games**: Pong, Snake, and Conway's Game of Life with button controls
 - **Trivia System**: Interactive trivia with spoiler-based answers and fuzzy matching
 - **Moderation Tools**: Warnings, kicks, bans, timeouts, and message cleanup
 - **Fun Commands**: Dice rolls, coin flips, 8-ball, rock-paper-scissors, and more
@@ -130,6 +131,7 @@ ADMIN_IDS=123456789012345678,987654321098765432
 │   ├── trivia.py      # Trivia questions with rewards
 │   ├── moderation.py  # Warns, kicks, bans, timeouts
 │   ├── fun.py         # Dice, coin flip, 8ball, RPS
+│   ├── games.py       # Pong, Snake, Game of Life
 │   └── settings.py    # Guild configuration
 ├── data/              # JSON data files (auto-created)
 └── docs/              # Additional documentation
@@ -216,6 +218,13 @@ See `docs/cogs.md` for more details and examples.
 - `/rps <choice>` - Rock-paper-scissors
 - `/8ball <question>` - Magic 8-ball
 - `/choose <options>` - Random choice from comma-separated options
+
+### Games (`cogs/games.py`)
+- `/pong` - Play Pong with button controls (two-player paddles)
+- `/snake` - Classic Snake game with directional buttons
+- `/gameoflife` - Conway's Game of Life simulator with step/auto/randomize controls
+- All games feature interactive button controls and auto-updates
+- Only one active game per user at a time
 
 ### Settings (`cogs/settings.py`)
 - `/config_show` - Display current server settings

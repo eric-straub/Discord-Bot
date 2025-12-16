@@ -105,6 +105,7 @@ def main():
         "cogs/general.py",
         "cogs/rank.py",
         "cogs/fun.py",
+        "cogs/games.py",
         "cogs/moderation.py",
         "cogs/economy.py",
         "cogs/settings.py",
