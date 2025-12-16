@@ -79,9 +79,7 @@ class MyBot(commands.Bot):
         """Runs before the bot connects — load cogs here."""
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.rank")
-        await self.load_extension("cogs.welcome")
         await self.load_extension("cogs.fun")
-        await self.load_extension("cogs.info")
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.economy")
         await self.load_extension("cogs.settings")

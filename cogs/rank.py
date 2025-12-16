@@ -96,19 +96,6 @@ class RankSystem(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="profile", description="Show a user's profile (XP, level, parries)")
-    async def profile(self, interaction: discord.Interaction, member: discord.Member = None):
-        member = member or interaction.user
-        user_id = str(member.id)
-        stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
-
-        embed = discord.Embed(title=f"{member.display_name}'s Profile", color=discord.Color.blurple())
-        embed.add_field(name="Level", value=stats["level"])
-        embed.add_field(name="XP", value=stats["xp"])
-        embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
-
-        await interaction.response.send_message(embed=embed)
-
     @app_commands.command(name="xp_set", description="Set a user's XP (admin only)")
     async def xp_set(self, interaction: discord.Interaction, member: discord.Member, amount: int):
         if not is_admin(interaction.user.id):
@@ -196,71 +183,6 @@ class RankSystem(commands.Cog):
             )
 
         embed.set_footer(text=f"Page {page} of {total_pages}")
-        await interaction.response.send_message(embed=embed)
-
-    @app_commands.command(name="topranks", description="Show top 10 players by XP")
-    async def topranks(self, interaction: discord.Interaction):
-        """Quick view of top 10 ranked players."""
-        sorted_users = sorted(
-            self.ranks.items(),
-            key=lambda x: x[1]["xp"],
-            reverse=True
-        )
-
-        # Filter to guild members
-        guild = interaction.guild
-        if not guild:
-            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
-            return
-
-        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
-
-        text = "🏆 **Top 10 Players**\n\n"
-        for i, (user_id, data) in enumerate(guild_users[:10], start=1):
-            user = guild.get_member(int(user_id))
-            name = user.display_name if user else "Unknown"
-            text += f"{i}. {name} — Lvl {data['level']} ({data['xp']} XP)\n"
-
-        if len(guild_users) == 0:
-            await interaction.response.send_message("No ranked members found on this server.")
-            return
-
-        await interaction.response.send_message(text)
-
-    @app_commands.command(name="xp_leaderboard", description="Show leaderboard sorted by total XP gained")
-    async def xp_leaderboard(self, interaction: discord.Interaction):
-        """Show top users by raw XP count."""
-        sorted_users = sorted(
-            self.ranks.items(),
-            key=lambda x: x[1].get("xp", 0),
-            reverse=True
-        )
-
-        guild = interaction.guild
-        if not guild:
-            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
-            return
-
-        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
-
-        if len(guild_users) == 0:
-            await interaction.response.send_message("No ranked members found on this server.")
-            return
-
-        embed = discord.Embed(
-            title="📊 XP Leaderboard",
-            color=discord.Color.purple()
-        )
-
-        for i, (user_id, data) in enumerate(guild_users[:15], start=1):
-            user = guild.get_member(int(user_id))
-            name = user.display_name if user else f"Unknown ({user_id})"
-            embed.add_field(
-                name=f"#{i} — {name}",
-                value=f"{data.get('xp', 0)} XP",
-                inline=False
-            )
-
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="next_level", description="See how much XP you need for the next level")

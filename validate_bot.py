@@ -104,12 +104,12 @@ def main():
     required_cogs = [
         "cogs/general.py",
         "cogs/rank.py",
-        "cogs/welcome.py",
         "cogs/fun.py",
-        "cogs/info.py",
         "cogs/moderation.py",
         "cogs/economy.py",
         "cogs/settings.py",
+        "cogs/trivia.py",
+        "cogs/casino.py",
     ]
     
     for cog in required_cogs:
@@ -178,7 +178,6 @@ def main():
     data_files = [
         "data/ranks.json",
         "data/economy.json",
-        "data/welcome.json",
         "data/warns.json",
         "data/settings.json",
     ]

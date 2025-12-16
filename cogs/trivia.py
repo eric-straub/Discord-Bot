@@ -228,15 +228,6 @@ class Trivia(commands.Cog):
                 task.cancel()
             self.active_trivia.pop(channel.id, None)
 
-    @commands.command(name="trivia_post")
-    async def trivia_post_prefix(self, ctx, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 10):
-        """Prefix wrapper: !trivia_post <question> <answer> [xp] [credits] [duration_minutes]
-        Note: space-separated args may be awkward; prefer using slash command.
-        """
-        # Provide a simple compatibility wrapper that forwards to the slash handler
-        await ctx.send("Please use the slash command `/trivia_post` in modern clients."
-                       " This prefix wrapper exists but has limited parsing.")
-
 
 async def setup(bot):
     await bot.add_cog(Trivia(bot))

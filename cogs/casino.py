@@ -221,11 +221,6 @@ class Casino(commands.Cog):
         del self.active_games[user_id]
         await interaction.response.edit_message(embed=embed, view=None)
 
-    @commands.command(name="blackjack")
-    async def blackjack_prefix(self, ctx, bet: int):
-        """Prefix command: !blackjack <bet>"""
-        await ctx.send("Please use the slash command `/blackjack` for the best experience.")
-
 
 class BlackjackView(discord.ui.View):
     """View with Hit and Stand buttons for blackjack."""

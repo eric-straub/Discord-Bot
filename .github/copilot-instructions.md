@@ -2,8 +2,9 @@
 
 This repository is a small Discord bot built with `discord.py` using a Cog-based design. The bot uses both slash (`@app_commands.command`) and prefix (`@commands.command`) commands and places runtime state and persistent data under the `data/` directory as JSON files (eg. `data/ranks.json`, `data/settings.json`). Key entry points and helpers:
 
-- `bot.py` : Application entry; configures `Intents`, creates `MyBot`, loads cogs in `setup_hook`, and runs the bot.
+- `bot.py` : Application entry; configures `Intents`, creates `MyBot`, loads cogs in `setup_hook`, and runs the bot. Also handles autorole assignment via `on_member_join_autorole()` event.
 - `validate_bot.py` : Pre-flight validation script — run this before starting the bot to catch missing env vars, syntax errors, dependency issues, and data file problems.
+- `utils.py` : Shared utilities; notably `is_admin(user_id)` which checks user IDs against the `ADMIN_IDS` env var (comma-separated list).
 - `cogs/*.py` : Individual feature modules (cogs). Each cog exposes an `async def setup(bot)` factory which registers the cog via `await bot.add_cog(...)`.
 
 **High-level architecture & flows**
@@ -29,6 +30,8 @@ This repository is a small Discord bot built with `discord.py` using a Cog-based
 - User IDs in JSON: always store Discord user IDs as strings (e.g., `"89161521543811072"`), not integers, for JSON compatibility.
 - Background tasks: use `self.bot.loop.create_task()` for async watchers (see `cogs/trivia.py` for timer-based game logic); always store task references and cancel them on cleanup.
 - Cooldowns: implement per-user cooldowns with `time.time()` comparisons stored in instance dicts (see `cogs/rank.py` XP cooldown — 10 seconds between awards).
+- Admin permissions: use `utils.is_admin(user_id)` to check if a user is in the `ADMIN_IDS` env var list. For server-specific perms, check `interaction.user.guild_permissions.*` (example: `manage_guild` in `cogs/trivia.py`).
+- Trivia answer pattern: `cogs/trivia.py` uses spoiler tags (`||answer||`) to hide user answers and prevent cheating. Answers are extracted via regex, normalized (lowercased, punctuation removed), and matched with fuzzy string matching (difflib SequenceMatcher with 0.78 threshold).
 
 **Integration & dependencies**
 
@@ -62,6 +65,26 @@ Follow these rules when changing code:
 - Keep heavy I/O and blocking work off the event loop (use `asyncio.to_thread` or background tasks if needed).
 - Use the existing lightweight logging/print patterns rather than introducing heavy logging frameworks without consensus.
 - When cogs need to communicate, define clear public methods (prefixed without underscore) or protected helpers (prefixed with `_` for internal use only).
+
+**Available Cogs & Data Files**
+
+Current cogs in production (loaded by `bot.setup_hook()`):
+- `general` — ping, hello, server stats, help command
+- `rank` — XP/level system with message-based XP gain (15-25 XP per message, 10s cooldown), leaderboard
+- `economy` — currency system with daily rewards (100 credits, 24h cooldown), balance checks, transfers
+- `moderation` — warnings system, kick, ban, timeout, message purge
+- `settings` — per-guild configuration (prefix, XP toggle, autorole, modlog channel)
+- `trivia` — interactive trivia questions with spoiler-based answers, fuzzy matching, XP/credit rewards
+- `casino` — blackjack gambling game with betting mechanics
+- `fun` — dice rolls (NdX format), coin flip, 8ball, rock-paper-scissors, random choice
+
+Data files (JSON in `data/`):
+- `ranks.json` — `{"user_id": {"xp": int, "level": int}}` - Level formula: `floor(sqrt(xp / 50))`
+- `economy.json` — `{"user_id": {"balance": int, "total_earned": int}}`
+- `settings.json` — `{"guild_id": {"prefix": str, "xp_enabled": bool, "modlog_channel": int|null, "autorole_enabled": bool, "autorole_id": int|null}}`
+- `warns.json` — `{"guild_id": {"user_id": [{"reason": str, "issued_by": str, "timestamp": str (ISO 8601)}]}}`
+
+Note: All files are auto-created on first use. User and guild IDs are always stored as strings.
 
 **Files & places to check for examples**
 
