@@ -1,9 +1,10 @@
 """Casino cog — gambling games like blackjack where users can bet credits."""
 
+import random
+
 import discord
 from discord.ext import commands
 from discord import app_commands
-import random
 
 
 class Casino(commands.Cog):

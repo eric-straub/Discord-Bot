@@ -1,10 +1,11 @@
 """Settings cog — bot configuration and server settings."""
 
+import json
+import os
+
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
-import os
 
 SETTINGS_FILE = "data/settings.json"
 os.makedirs("data", exist_ok=True)

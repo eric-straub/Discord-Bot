@@ -4,11 +4,12 @@ from discord import app_commands
 import json
 import os
 import time
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import random
+
 from utils import is_admin
 
-RANK_FILE = "data/ranks.json"   # Ensure this folder exists
+RANK_FILE = "data/ranks.json"
+os.makedirs("data", exist_ok=True)
 
 def load_ranks():
     if not os.path.exists(RANK_FILE):
@@ -69,7 +70,6 @@ class RankSystem(commands.Cog):
         self.cooldowns[user_id] = now
 
         # XP between 15 and 25 per message
-        import random
         xp_gain = random.randint(15, 25)
 
         new_level = await self.award_xp(user_id, xp_gain)

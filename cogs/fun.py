@@ -1,9 +1,10 @@
 """Fun and games cog — dice rolls, coin flips, rock-paper-scissors, and more."""
 
+import random
+
 import discord
 from discord.ext import commands
 from discord import app_commands
-import random
 
 
 class Fun(commands.Cog):

@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Configure logging — DEBUG is helpful while developing
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging - INFO level to reduce noise, DEBUG for development
+logging.basicConfig(level=logging.INFO)
 
 # Discord intents
 intents = discord.Intents.default()
@@ -37,7 +37,7 @@ class MyBot(commands.Bot):
         print(f"Unhandled exception in event: {event_method}")
         traceback.print_exc()
 
-    async def on_member_join_autorole(self, member: discord.Member):
+    async def on_member_join(self, member: discord.Member):
         """Auto-assign role to new members if configured."""
         try:
             settings_file = "data/settings.json"
@@ -52,28 +52,21 @@ class MyBot(commands.Bot):
                             await member.add_roles(role)
                             print(f"[autorole] Assigned {role.name} to {member}")
         except Exception as e:
-            print(f"Autorole assignment failed: {e}")
+            print(f"[autorole] Failed to assign role: {e}")
 
     async def on_socket_response(self, msg):
         """
         Log important gateway events to help debug interaction issues.
-        Shows INTERACTION_CREATE, command registration, and READY events.
+        Only logs INTERACTION_CREATE, APPLICATION_COMMAND_CREATE, and READY events.
         """
         try:
             t = msg.get("t")
-            op = msg.get("op")
-
             if t in ("INTERACTION_CREATE", "APPLICATION_COMMAND_CREATE", "READY"):
-                print(
-                    f"[socket] t={t} op={op} "
-                    f"d_keys={list(msg.get('d', {}).keys()) if isinstance(msg.get('d'), dict) else None}"
-                )
-            else:
-                # Keep other events short to avoid spam
-                if op is not None:
-                    print(f"[socket] op={op} t={t}")
+                op = msg.get("op")
+                d_keys = list(msg.get('d', {}).keys()) if isinstance(msg.get('d'), dict) else None
+                print(f"[socket] t={t} op={op} d_keys={d_keys}")
         except Exception as e:
-            print(f"on_socket_response logging failed: {e}")
+            print(f"[socket] Logging failed: {e}")
 
     async def setup_hook(self):
         """Runs before the bot connects — load cogs here."""

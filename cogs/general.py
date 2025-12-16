@@ -2,35 +2,34 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Slash command: /ping
     @app_commands.command(name="ping", description="Check bot latency")
     async def ping(self, interaction: discord.Interaction):
+        """Check bot's response time in milliseconds."""
         latency = round(self.bot.latency * 1000)
         await interaction.response.send_message(f"Pong! `{latency} ms`")
 
-    # Slash command: /hello
     @app_commands.command(name="hello", description="The bot says hello")
     async def hello(self, interaction: discord.Interaction):
+        """Friendly greeting command."""
         await interaction.response.send_message(f"Hello, {interaction.user.mention}! 👋")
 
-    # Prefix command: !ping (checks latency)
     @commands.command(name="ping")
     async def ping_cmd(self, ctx):
-        """Responds with bot latency for prefix command usage (!ping)."""
+        """Prefix command version of ping."""
         try:
             latency = round(self.bot.latency * 1000)
             await ctx.send(f"Pong! `{latency} ms`")
         except Exception as e:
-            # Keep prefix error handling simple and visible to the caller
             await ctx.send(f"Error: {e}")
 
-    # Slash command: /server_stats — show basic guild statistics
     @app_commands.command(name="server_stats", description="Show basic server statistics")
     async def server_stats(self, interaction: discord.Interaction):
+        """Display comprehensive server statistics."""
         guild = interaction.guild
         if not guild:
             await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
@@ -59,91 +58,94 @@ class General(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    # Log incoming interactions to help debug slash command delivery
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
+        """Log interactions for debugging purposes."""
         try:
             name = None
-            # interaction.data may be None for non-application interactions
-            if getattr(interaction, "data", None):
-                # data can contain the command name for application commands
+            if hasattr(interaction, "data") and interaction.data:
                 name = interaction.data.get("name") if isinstance(interaction.data, dict) else None
-            print(f"[interaction] id={getattr(interaction, 'id', None)} user={getattr(interaction, 'user', None)} name={name} type={getattr(interaction, 'type', None)}")
+            print(f"[interaction] id={interaction.id} user={interaction.user} name={name} type={interaction.type}")
         except Exception as e:
-            print(f"on_interaction logging failed: {e}")
+            print(f"[interaction] Logging failed: {e}")
 
-    # Error handler
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
+        """Handle command errors for prefix commands."""
         await ctx.send(f"Error: {error}")
 
     def _build_help_embed(self, category: str = None, *, author: discord.abc.User = None) -> discord.Embed:
-        """Construct a rich help embed. Reused by both slash and prefix help commands."""
+        """Construct a help embed with command categories and examples."""
         categories_desc = {
-            "general": "General utility commands (ping, hello, server stats, echo)",
+            "general": "General utility commands (ping, hello, server stats)",
             "rank": "Rank and XP system (rank, leaderboard, profile)",
             "fun": "Fun and games (dice, coin, rock-paper-scissors, 8ball)",
-            "info": "Information commands (userinfo, serverinfo, avatar)",
             "moderation": "Moderation tools (warn, timeout, purge)",
-            "economy": "Currency and wallet system (balance, pay, daily)"
+            "economy": "Currency and wallet system (balance, pay, daily)",
+            "trivia": "Interactive trivia questions with rewards",
+            "casino": "Gambling games (blackjack)",
+            "settings": "Server configuration (prefix, XP toggle, autorole)"
         }
 
         examples = {
-            "general": "`/ping`, `/hello`, `/server_stats`, `!echo <text>`",
-            "rank": "`/rank`, `/leaderboard`, `/profile`",
+            "general": "`/ping`, `/hello`, `/server_stats`",
+            "rank": "`/rank`, `/leaderboard`, `/next_level`",
             "fun": "`/dice 2d20`, `/coin`, `/rps rock`, `/8ball <question>`",
-            "info": "`/userinfo`, `/serverinfo`, `/avatar`",
             "moderation": "`/warn <user>`, `/timeout <user> 1h`, `/purge 5`",
-            "economy": "`/balance`, `/daily`, `/pay <user> 50`"
+            "economy": "`/balance`, `/daily`, `/pay <user> 50`",
+            "trivia": "`/trivia_post <question> <answer>`",
+            "casino": "`/blackjack <bet>`",
+            "settings": "`/config_show`, `/config_prefix !`"
         }
 
-        title = "📚 Welcome — Help & Overview"
+        title = "📚 Help & Command Guide"
         description = (
-            "Hi! I'm a multipurpose server assistant. I can track ranks, run economy commands, "
-            "help moderate your server, and provide fun utilities. Use slash commands like `/ping` "
-            "or prefix commands like `!echo`."
+            "I'm a multipurpose Discord bot with XP tracking, economy, moderation, games, and more! "
+            "Use slash commands like `/ping` or prefix commands like `!ping`."
         )
 
         embed = discord.Embed(title=title, color=discord.Color.blurple(), description=description)
 
-        # Add quick start / usage
-        embed.add_field(name="How to use", value="Type a slash command `/` and choose a command, or use classic prefix commands like `!echo`. Use `/help <category>` for details.", inline=False)
-
-        # If no category, list categories with short descriptions
         if not category:
-            for cat, desc in categories_desc.items():
+            # Show all categories
+            embed.add_field(
+                name="How to Use",
+                value="Type `/` to see slash commands, or use `!` for prefix commands. Use `/help <category>` for details.",
+                inline=False
+            )
+            for cat, desc in sorted(categories_desc.items()):
                 embed.add_field(name=cat.capitalize(), value=desc, inline=False)
-            embed.add_field(name="Examples", value="`/help general`, `/help fun`, `!help rank`", inline=False)
+            embed.set_footer(text="Type /help <category> for examples")
         else:
+            # Show specific category
             cat = category.lower()
             if cat not in categories_desc:
-                embed = discord.Embed(title="Unknown category", color=discord.Color.red(), description=f"Available: {', '.join(sorted(categories_desc.keys()))}")
+                embed = discord.Embed(
+                    title="Unknown Category",
+                    color=discord.Color.red(),
+                    description=f"Available categories: {', '.join(sorted(categories_desc.keys()))}"
+                )
                 return embed
 
             embed.title = f"📚 Help — {cat.capitalize()} Commands"
             embed.description = categories_desc[cat]
-            embed.add_field(name="Examples", value=examples.get(cat, ""), inline=False)
+            embed.add_field(name="Examples", value=examples.get(cat, "No examples available"), inline=False)
+            embed.set_footer(text="Use /help to see all categories")
 
-        # Optional author-specific footer
         if author:
-            embed.set_footer(text=f"Requested by {author}")
-        else:
-            embed.set_footer(text="Type /help <category> for more details")
+            embed.set_author(name=f"Requested by {author.display_name}", icon_url=author.avatar.url if author.avatar else None)
 
         return embed
 
-    # Slash command: /help — show available commands (intro + categories)
-    @app_commands.command(name="help", description="Intro and guide to available commands")
+    @app_commands.command(name="help", description="Show available commands and categories")
     async def help(self, interaction: discord.Interaction, category: str = None):
-        """Show a friendly introduction to the bot and available command categories."""
+        """Display bot commands organized by category."""
         embed = self._build_help_embed(category, author=interaction.user)
-        # Non-sensitive help should be visible to all; use ephemeral=True only for invalid usage
         await interaction.response.send_message(embed=embed)
 
-    # Prefix command: !help (parity with slash help)
     @commands.command(name="help")
     async def help_cmd(self, ctx, *, category: str = None):
-        """Prefix-based help wrapper to mirror `/help`. Usage: `!help` or `!help <category>`"""
+        """Prefix command version of help."""
         embed = self._build_help_embed(category, author=ctx.author)
         await ctx.send(embed=embed)
 

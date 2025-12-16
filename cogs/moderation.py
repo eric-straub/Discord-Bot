@@ -6,8 +6,7 @@ from discord import app_commands
 import json
 import os
 from datetime import timedelta, datetime
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from utils import is_admin
 
 WARN_FILE = "data/warns.json"

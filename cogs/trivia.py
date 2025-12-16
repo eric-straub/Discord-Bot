@@ -1,12 +1,13 @@
 """Trivia cog — post questions and reward correct answers with XP and credits."""
 
-import discord
-from discord.ext import commands
-from discord import app_commands
 import asyncio
 import time
 import difflib
 import re
+
+import discord
+from discord.ext import commands
+from discord import app_commands
 
 
 class Trivia(commands.Cog):
