@@ -4,9 +4,12 @@ from discord import app_commands
 import json
 import os
 import time
-import discord
+import random
 
-RANK_FILE = "data/ranks.json"   # Ensure this folder exists
+from utils import is_admin
+
+RANK_FILE = "data/ranks.json"
+os.makedirs("data", exist_ok=True)
 
 def load_ranks():
     if not os.path.exists(RANK_FILE):
@@ -67,7 +70,6 @@ class RankSystem(commands.Cog):
         self.cooldowns[user_id] = now
 
         # XP between 15 and 25 per message
-        import random
         xp_gain = random.randint(15, 25)
 
         new_level = await self.award_xp(user_id, xp_gain)
@@ -94,23 +96,10 @@ class RankSystem(commands.Cog):
 
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="profile", description="Show a user's profile (XP, level, parries)")
-    async def profile(self, interaction: discord.Interaction, member: discord.Member = None):
-        member = member or interaction.user
-        user_id = str(member.id)
-        stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
-
-        embed = discord.Embed(title=f"{member.display_name}'s Profile", color=discord.Color.blurple())
-        embed.add_field(name="Level", value=stats["level"])
-        embed.add_field(name="XP", value=stats["xp"])
-        embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
-
-        await interaction.response.send_message(embed=embed)
-
     @app_commands.command(name="xp_set", description="Set a user's XP (admin only)")
     async def xp_set(self, interaction: discord.Interaction, member: discord.Member, amount: int):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         uid = str(member.id)
@@ -123,8 +112,8 @@ class RankSystem(commands.Cog):
 
     @app_commands.command(name="xp_add", description="Add XP to a user (admin only)")
     async def xp_add(self, interaction: discord.Interaction, member: discord.Member, amount: int):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         uid = str(member.id)
@@ -138,8 +127,8 @@ class RankSystem(commands.Cog):
 
     @app_commands.command(name="xp_recalc", description="Recalculate levels for all users from XP (admin only)")
     async def xp_recalc(self, interaction: discord.Interaction):
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("Missing permissions (manage_guild).", ephemeral=True)
+        if not is_admin(interaction.user.id):
+            await interaction.response.send_message("Missing permissions (admin only).", ephemeral=True)
             return
 
         for uid, data in self.ranks.items():
@@ -149,20 +138,42 @@ class RankSystem(commands.Cog):
 
     # Slash Command: /leaderboard
     @app_commands.command(name="leaderboard", description="Show the top users by level")
-    async def leaderboard(self, interaction: discord.Interaction):
+    async def leaderboard(self, interaction: discord.Interaction, page: int = 1):
+        """Display the server leaderboard (10 users per page)."""
         sorted_users = sorted(
             self.ranks.items(),
             key=lambda x: x[1]["xp"],
             reverse=True
         )
 
+        # Filter to members present in this guild
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server (guild).", ephemeral=True)
+            return
+
+        guild_users = [(uid, data) for uid, data in sorted_users if guild.get_member(int(uid))]
+
+        # Pagination
+        per_page = 10
+        total_pages = (len(guild_users) + per_page - 1) // per_page
+        if total_pages == 0:
+            await interaction.response.send_message("No ranked members found on this server.")
+            return
+
+        if page < 1 or page > total_pages:
+            page = 1
+
+        start = (page - 1) * per_page
+        end = start + per_page
+
         embed = discord.Embed(
             title="🏆 Server Leaderboard",
             color=discord.Color.gold()
         )
 
-        for i, (user_id, data) in enumerate(sorted_users[:10], start=1):
-            user = interaction.guild.get_member(int(user_id))
+        for i, (user_id, data) in enumerate(guild_users[start:end], start=start + 1):
+            user = guild.get_member(int(user_id))
             name = user.display_name if user else f"Unknown ({user_id})"
 
             embed.add_field(
@@ -170,6 +181,44 @@ class RankSystem(commands.Cog):
                 value=f"Level {data['level']} • {data['xp']} XP",
                 inline=False
             )
+
+        embed.set_footer(text=f"Page {page} of {total_pages}")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="next_level", description="See how much XP you need for the next level")
+    async def next_level(self, interaction: discord.Interaction, member: discord.Member = None):
+        """Show progress to next level."""
+        member = member or interaction.user
+        user_id = str(member.id)
+        stats = self.ranks.get(user_id, {"xp": 0, "level": 0})
+
+        current_xp = stats["xp"]
+        current_level = stats["level"]
+        next_level = current_level + 1
+
+        # XP needed: level = sqrt(xp / 50), so xp = level^2 * 50
+        current_level_xp = int((current_level ** 2) * 50)
+        next_level_xp = int((next_level ** 2) * 50)
+
+        xp_in_level = current_xp - current_level_xp
+        xp_needed = next_level_xp - current_xp
+
+        # Progress bar
+        total_in_level = next_level_xp - current_level_xp
+        progress = xp_in_level / total_in_level if total_in_level > 0 else 0
+        bar_length = 20
+        filled = int(bar_length * progress)
+        bar = "█" * filled + "░" * (bar_length - filled)
+
+        embed = discord.Embed(
+            title=f"{member.display_name}'s Progress",
+            color=discord.Color.blurple()
+        )
+        embed.add_field(name="Current Level", value=current_level, inline=True)
+        embed.add_field(name="Next Level", value=next_level, inline=True)
+        embed.add_field(name="Progress", value=f"`{bar}` {progress*100:.1f}%", inline=False)
+        embed.add_field(name="XP in Level", value=f"{xp_in_level}/{total_in_level}", inline=True)
+        embed.add_field(name="XP Needed", value=f"{xp_needed} more", inline=True)
 
         await interaction.response.send_message(embed=embed)
 
