@@ -17,10 +17,11 @@ Cogs are modular components that group related commands and functionality. Each 
 - `general.py` - Basic commands (ping, hello, help, server stats)
 - `rank.py` - XP and leveling system with leaderboards
 - `economy.py` - Currency system with daily rewards and transfers
-- `casino.py` - Gambling games (blackjack)
+- `casino.py` - Gambling games (blackjack, slots, roulette, coinflip, dice, crash)
 - `trivia.py` - Interactive trivia with rewards
 - `moderation.py` - Moderation tools (warn, kick, ban, timeout)
 - `fun.py` - Entertainment commands (dice, 8ball, RPS)
+- `games.py` - Interactive games with button controls (Pong, Snake, Game of Life)
 - `settings.py` - Per-guild configuration
 
 ## Creating a New Cog

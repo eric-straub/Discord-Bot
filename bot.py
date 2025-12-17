@@ -7,6 +7,9 @@ from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 
+# Bot version
+__version__ = "0.0.1-alpha"
+
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -29,6 +32,7 @@ class MyBot(commands.Bot):
             application_id=os.getenv("APPLICATION_ID"),
             help_command=None,  # Disable built-in help command to avoid conflicts
         )
+        self.version = __version__
 
     async def on_error(self, event_method, *args, **kwargs):
         """Catch unexpected errors in event handlers."""

@@ -33,7 +33,7 @@ This bot is designed to be a clear, maintainable starting point for small-to-med
 - **Dual Command Support**: Slash commands (`/`) and prefix commands where appropriate
 - **Rank System**: XP-based leveling with message activity tracking and leaderboards
 - **Economy System**: Currency system with daily rewards, balance tracking, and casino games
-- **Casino Games**: Blackjack with betting mechanics
+- **Casino Games**: Blackjack, Slots, Roulette, Coinflip, Dice, and Crash with credit betting
 - **Interactive Games**: Pong, Snake, and Conway's Game of Life with button controls
 - **Trivia System**: Interactive trivia with spoiler-based answers and fuzzy matching
 - **Moderation Tools**: Warnings, kicks, bans, timeouts, and message cleanup

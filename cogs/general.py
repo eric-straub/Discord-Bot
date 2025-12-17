@@ -27,6 +27,22 @@ class General(commands.Cog):
         except Exception as e:
             await ctx.send(f"Error: {e}")
 
+    @app_commands.command(name="version", description="Show bot version and info")
+    async def version(self, interaction: discord.Interaction):
+        """Display bot version information."""
+        version = getattr(self.bot, 'version', 'Unknown')
+        
+        embed = discord.Embed(
+            title="🤖 Bot Version",
+            description=f"**Version:** `{version}`",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="Status", value="Alpha Release", inline=True)
+        embed.add_field(name="Discord.py", value=f"`{discord.__version__}`", inline=True)
+        embed.set_footer(text="Discord Bot by Eric Straub")
+        
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="server_stats", description="Show basic server statistics")
     async def server_stats(self, interaction: discord.Interaction):
         """Display comprehensive server statistics."""
@@ -84,19 +100,19 @@ class General(commands.Cog):
             "moderation": "Moderation tools (warn, timeout, purge)",
             "economy": "Currency and wallet system (balance, pay, daily)",
             "trivia": "Interactive trivia questions with rewards",
-            "casino": "Gambling games (blackjack)",
+            "casino": "Gambling games (blackjack, slots, roulette, coinflip, dice, crash)",
             "settings": "Server configuration (prefix, XP toggle, autorole)"
         }
 
         examples = {
-            "general": "`/ping`, `/hello`, `/server_stats`",
+            "general": "`/ping`, `/hello`, `/version`, `/server_stats`",
             "rank": "`/rank`, `/leaderboard`, `/next_level`",
             "fun": "`/dice 2d20`, `/coin`, `/rps rock`, `/8ball <question>`",
             "games": "`/pong`, `/snake`, `/gameoflife`",
             "moderation": "`/warn <user>`, `/timeout <user> 1h`, `/purge 5`",
             "economy": "`/balance`, `/daily`, `/pay <user> 50`",
             "trivia": "`/trivia_post <question> <answer>`",
-            "casino": "`/blackjack <bet>`",
+            "casino": "`/blackjack <bet>`, `/slots <bet>`, `/roulette <bet> <choice>`, `/coinflip <bet> <choice>`, `/dice <bet> <choice>`, `/crash <bet>`",
             "settings": "`/config_show`, `/config_prefix !`"
         }
 
@@ -150,30 +166,6 @@ class General(commands.Cog):
         """Prefix command version of help."""
         embed = self._build_help_embed(category, author=ctx.author)
         await ctx.send(embed=embed)
-
-    # Slash command: /status — show bot status
-    @app_commands.command(name="status", description="Check bot status and uptime")
-    async def status(self, interaction: discord.Interaction):
-        """Display bot status, latency, and uptime."""
-        import time
-        from datetime import datetime, timedelta
-
-        uptime_seconds = time.time() - self.bot.start_time if hasattr(self.bot, 'start_time') else 0
-        uptime = timedelta(seconds=int(uptime_seconds))
-
-        latency = round(self.bot.latency * 1000)
-
-        embed = discord.Embed(
-            title="🤖 Bot Status",
-            color=discord.Color.green(),
-            timestamp=datetime.utcnow()
-        )
-        embed.add_field(name="Status", value="🟢 Online", inline=True)
-        embed.add_field(name="Latency", value=f"{latency} ms", inline=True)
-        embed.add_field(name="Uptime", value=str(uptime), inline=True)
-        embed.add_field(name="Version", value="0.1.0", inline=True)
-
-        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):
