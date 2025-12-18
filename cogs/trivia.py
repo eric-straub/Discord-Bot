@@ -149,6 +149,20 @@ class Trivia(commands.Cog):
 
         await interaction.followup.send(f"Posted trivia in {channel.mention}")
 
+    @trivia_post.error
+    async def trivia_post_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        """Handle errors for the trivia_post command, especially cooldowns."""
+        if isinstance(error, app_commands.CommandOnCooldown):
+            # Convert seconds to a human-readable format
+            remaining = int(error.retry_after)
+            await interaction.response.send_message(
+                f"⏱️ This command is on cooldown. Please wait **{remaining} seconds** before posting another trivia question.",
+                ephemeral=True
+            )
+        else:
+            # Re-raise other errors for the default error handler
+            raise error
+
     @app_commands.command(name="trivia_cancel", description="Cancel the active trivia in this channel")
     async def trivia_cancel(self, interaction: discord.Interaction):
         """Cancel an active trivia. Only the asker or admins can cancel."""
