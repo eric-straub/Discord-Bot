@@ -14,6 +14,7 @@ class Fun(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="dice", description="Roll a d20 or custom dice (e.g., 2d6)")
+    @app_commands.checks.cooldown(1, 3.0)  # 1 use per 3 seconds
     async def dice(self, interaction: discord.Interaction, dice: str = "d20"):
         """Roll dice. Format: NdX (e.g., 2d6, 3d20). Defaults to d20."""
         try:
@@ -42,6 +43,7 @@ class Fun(commands.Cog):
             await interaction.response.send_message("Invalid format. Use NdX (e.g., 2d6, d20).", ephemeral=True)
 
     @app_commands.command(name="coin", description="Flip a coin")
+    @app_commands.checks.cooldown(1, 3.0)  # 1 use per 3 seconds
     async def coin(self, interaction: discord.Interaction):
         """Flip a fair coin."""
         result = random.choice(["Heads", "Tails"])
@@ -49,6 +51,7 @@ class Fun(commands.Cog):
         await interaction.response.send_message(f"{emoji} **{result}!**")
 
     @app_commands.command(name="rps", description="Play rock-paper-scissors")
+    @app_commands.checks.cooldown(1, 3.0)  # 1 use per 3 seconds
     async def rps(self, interaction: discord.Interaction, choice: str):
         """Play rock-paper-scissors. Choices: rock, paper, scissors."""
         choices = ["rock", "paper", "scissors"]
@@ -77,6 +80,7 @@ class Fun(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="8ball", description="Ask the magic 8-ball a yes/no question")
+    @app_commands.checks.cooldown(1, 5.0)  # 1 use per 5 seconds
     async def eight_ball(self, interaction: discord.Interaction, question: str):
         """Consult the magic 8-ball for wisdom."""
         responses = [

@@ -187,8 +187,20 @@ def main():
         if Path(data_file).exists():
             try:
                 with open(data_file) as f:
-                    json.load(f)
-                validator.check(True, f"{data_file} is valid JSON")
+                    data = json.load(f)
+                # Validate structure for new format
+                if data_file == "data/ranks.json":
+                    if "users" in data:
+                        validator.check(True, f"{data_file} is valid JSON (new format)")
+                    else:
+                        validator.check(True, f"{data_file} is valid JSON (old format - will be migrated)")
+                elif data_file == "data/economy.json":
+                    if "users" in data:
+                        validator.check(True, f"{data_file} is valid JSON (new format)")
+                    else:
+                        validator.check(True, f"{data_file} is valid JSON (old format - will be migrated)")
+                else:
+                    validator.check(True, f"{data_file} is valid JSON")
             except json.JSONDecodeError:
                 validator.check(False, f"{data_file} has invalid JSON - delete and restart")
         else:

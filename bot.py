@@ -8,7 +8,7 @@ from discord import app_commands
 from dotenv import load_dotenv
 
 # Bot version
-__version__ = "0.0.1-alpha"
+__version__ = "0.0.2-alpha"
 
 # Load environment variables
 load_dotenv()
@@ -78,9 +78,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.rank")
         await self.load_extension("cogs.fun")
         await self.load_extension("cogs.games")
-        await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.economy")
-        await self.load_extension("cogs.settings")
         await self.load_extension("cogs.trivia")
         await self.load_extension("cogs.casino")
 

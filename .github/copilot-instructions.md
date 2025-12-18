@@ -1,43 +1,50 @@
 **Repository Overview**
 
-This repository is a small Discord bot built with `discord.py` using a Cog-based design. The bot uses both slash (`@app_commands.command`) and prefix (`@commands.command`) commands and places runtime state and persistent data under the `data/` directory as JSON files (eg. `data/ranks.json`, `data/settings.json`). Key entry points and helpers:
+A Discord bot built with `discord.py` using Cog-based architecture. Dual command support (slash + prefix), JSON-backed persistence in `data/`, and pre-flight validation. Key files:
 
-- `bot.py` : Application entry; configures `Intents`, creates `MyBot`, loads cogs in `setup_hook`, and runs the bot. Also handles autorole assignment via `on_member_join_autorole()` event.
-- `validate_bot.py` : Pre-flight validation script — run this before starting the bot to catch missing env vars, syntax errors, dependency issues, and data file problems.
-- `utils.py` : Shared utilities; notably `is_admin(user_id)` which checks user IDs against the `ADMIN_IDS` env var (comma-separated list).
-- `cogs/*.py` : Individual feature modules (cogs). Each cog exposes an `async def setup(bot)` factory which registers the cog via `await bot.add_cog(...)`.
+- `bot.py` : Entry point; configures `Intents`, creates `MyBot`, loads cogs in `setup_hook`, runs bot. Implements `on_member_join` for autorole and `on_socket_response` for gateway event logging.
+- `validate_bot.py` : Pre-flight validator — checks `.env` vars, file structure, cog syntax via `python -m py_compile`, dependency installation, and JSON integrity. Run before deployment.
+- `utils.py` : Shared utilities; `is_admin(user_id)` checks against `ADMIN_IDS` env var (comma-separated Discord user IDs).
+- `cogs/*.py` : Feature modules (Cog subclasses). Each provides `async def setup(bot)` for registration via `await bot.add_cog(...)`.
 
-**High-level architecture & flows**
+**Architecture & Flows**
 
-- Cog-based modularity: each file in `cogs/` implements a `commands.Cog` subclass and provides both slash and/or prefix commands where needed. Cogs are registered by `bot.setup_hook()` in `bot.py`.
-- Interaction flow: slash commands are implemented with `@app_commands.command` and respond via `interaction.response.*` or `interaction.followup.*`. Prefix commands use `@commands.command` and the standard `ctx` pattern.
-- Persistent data: small JSON files under `data/` are lazily created/updated by cogs. `validate_bot.py` expects those files (or will note they will be created on first use).
-- Cross-cog communication: Cogs access each other's functionality via `self.bot.get_cog('CogName')` and call public methods directly (example: `cogs/trivia.py` calls `RankSystem.award_xp()` and `Economy._add_balance()` to reward winners).
+- **Cog modularity**: Each `cogs/*.py` file implements a `commands.Cog` subclass with slash/prefix commands. Loaded in `bot.setup_hook()` via `await self.load_extension("cogs.cog_name")`.
+- **Command patterns**: Slash commands use `@app_commands.command` with `interaction.response.*` / `interaction.followup.*`. Prefix commands use `@commands.command` with `ctx`. For operations >3s, always `await interaction.response.defer()` first.
+- **JSON persistence**: Files in `data/` are lazily created by cogs. Pattern: `load with fallback → modify dict → save immediately`. User/Guild IDs stored as strings. `validate_bot.py` warns about missing files (auto-created on use) but fails on malformed JSON.
+- **Cross-cog communication**: Access via `self.bot.get_cog('CogClassName')` then call methods directly. Examples:
+  - `trivia.py` → `RankSystem.award_xp(user_id, amount)` and `Economy._add_balance(user_id, amount)`
+  - `casino.py` → `Economy._add_balance()` / `Economy._subtract_balance()` for betting
+  - Pattern: `cog = self.bot.get_cog('CogName')` → `if cog:` → `await cog.method()` (or sync `cog.method()`)
+- **Event listeners**: Use `@commands.Cog.listener()` for Discord events (`on_message` in `rank.py` for XP gain). `bot.py` handles `on_member_join` for autorole.
+- **Gateway logging**: `bot.py` logs key events (`INTERACTION_CREATE`, `APPLICATION_COMMAND_CREATE`, `READY`) via `on_socket_response()` for debugging. Uses print statements, not logging framework.
 
-**Key developer workflows**
+**Developer Workflows**
 
-- Run pre-flight checks: `python3 validate_bot.py` — this checks `.env`, required files, cog syntax, and installed dependencies.
-- Run the bot locally: create a `.env` with `DISCORD_TOKEN` and `APPLICATION_ID`, then `python3 bot.py`.
-- Slash command sync: happens automatically in `bot.on_ready()` via `await bot.tree.sync()` — no manual sync needed during development.
-- Linting / syntax: The repo relies on `python -m py_compile` checks in `validate_bot.py`; use your normal formatter (e.g. `black`) if desired but keep minimal diffs.
+1. **Pre-flight validation**: `python3 validate_bot.py` before starting bot. Checks: `.env` vars, file structure, cog syntax (`python -m py_compile`), dependencies, JSON integrity. Warns on missing data files (auto-created), fails on malformed JSON/missing env vars.
+2. **Local development**: Create `.env` with `DISCORD_TOKEN`, `APPLICATION_ID`, `ADMIN_IDS` → run `python3 bot.py`.
+3. **Slash command sync**: Automatic in `bot.on_ready()` via `await bot.tree.sync()`. No manual sync needed.
+4. **Testing interactive features**: Requires live Discord server. Games (`games.py`) and casino (`casino.py`) use button controls that need real Discord environment.
+5. **Syntax validation**: Run `python -m py_compile cogs/*.py` (done by validator). Use formatters like `black` if desired.
 
-**Project-specific conventions**
+**Project Conventions**
 
-- Dual command style: Provide parity between slash and prefix commands when useful (see `cogs/general.py` where `/ping` and `!ping` both exist). If adding commands, prefer providing both unless the feature is slash-only.
-- Cog setup: Always include an `async def setup(bot)` at the bottom of new cog files and register any bot-level state there (examples: `bot.start_time = time.time()`).
-- Error handling: handlers often catch exceptions locally and print for visibility, and slash handlers sometimes `defer()` then `followup.send()` when immediate responses fail. Follow this pattern for resilient interactive handlers.
-- Data handling: read/write JSON in `data/` using simple `json.load`/`json.dump` patterns. The validator accepts missing data files (they are created on first use) but flags malformed JSON.
-- User IDs in JSON: always store Discord user IDs as strings (e.g., `"89161521543811072"`), not integers, for JSON compatibility.
-- Background tasks: use `self.bot.loop.create_task()` for async watchers (see `cogs/trivia.py` for timer-based game logic); always store task references and cancel them on cleanup.
-- Cooldowns: implement per-user cooldowns with `time.time()` comparisons stored in instance dicts (see `cogs/rank.py` XP cooldown — 10 seconds between awards).
-- Admin permissions: use `utils.is_admin(user_id)` to check if a user is in the `ADMIN_IDS` env var list. For server-specific perms, check `interaction.user.guild_permissions.*` (example: `manage_guild` in `cogs/trivia.py`).
-- Trivia answer pattern: `cogs/trivia.py` uses spoiler tags (`||answer||`) to hide user answers and prevent cheating. Answers are extracted via regex, normalized (lowercased, punctuation removed), and matched with fuzzy string matching (difflib SequenceMatcher with 0.78 threshold).
+- **Dual commands**: Provide slash + prefix parity when useful (see `general.py`: `/ping` and `!ping`). Prefer both unless slash-only.
+- **Cog setup**: Include `async def setup(bot)` at bottom of cog files. Register bot state there (e.g., `bot.start_time = time.time()`). Load cogs in `bot.py`'s `setup_hook()`.
+- **Error handling**: Local try/catch with print statements. Slash: `defer()` → work → `followup.send()` for long ops.
+- **Data patterns**: `os.makedirs("data", exist_ok=True)` before write. Load with fallback → modify → save immediately. Example: `rank.py`.
+- **IDs in JSON**: Always strings, never integers. E.g., `"123456789012345678"` for user/guild IDs.
+- **Background tasks**: `self.bot.loop.create_task()` for async watchers (see `trivia.py`). Store task refs, cancel on cleanup.
+- **Cooldowns**: `time.time()` comparisons in instance dicts. Pattern: `if now - last < cooldown: return` then `self.cooldowns[user_id] = now`. Example: `rank.py` 10s XP cooldown.
+- **Admin checks**: `utils.is_admin(user_id)` for env-based perms. `interaction.user.guild_permissions.*` for server perms.
+- **Interactive UI**: `discord.ui.View` with `discord.ui.Button` for games/menus. Pattern: subclass View → add buttons with callbacks → pass to `interaction.response.send_message(view=view)`. Set `timeout`, handle cleanup. Examples: `games.py` (Pong/Snake), `casino.py` (blackjack).
+- **Trivia answers**: Spoiler tags `||answer||` prevent cheating. Extract via regex `r"\|\|(.+?)\|\|"`, normalize (lowercase, strip punctuation), fuzzy match with `difflib.SequenceMatcher` (0.78 threshold).
 
-**Integration & dependencies**
+**Integration & Dependencies**
 
-- Primary runtime dependency: `discord.py` (imported as `discord`). Secondary: `python-dotenv` to load `.env`.
-- `requirements.txt` lists pinned packages for the environment; match those when running in CI or locally.
-- Intents required: `message_content`, `members`, `presences` (set in `bot.py`).
+- Primary: `discord.py`. Secondary: `python-dotenv` for `.env` loading.
+- `requirements.txt`: pinned packages. Match in CI/local envs.
+- Required intents: `message_content`, `members`, `presences` (set in `bot.py`).
 
 **When editing or adding Cogs**
 
@@ -72,18 +79,14 @@ Current cogs in production (loaded by `bot.setup_hook()`):
 - `general` — ping, hello, server stats, help command
 - `rank` — XP/level system with message-based XP gain (15-25 XP per message, 10s cooldown), leaderboard
 - `economy` — currency system with daily rewards (100 credits, 24h cooldown), balance checks, transfers
-- `moderation` — warnings system, kick, ban, timeout, message purge
-- `settings` — per-guild configuration (prefix, XP toggle, autorole, modlog channel)
 - `trivia` — interactive trivia questions with spoiler-based answers, fuzzy matching, XP/credit rewards
 - `casino` — blackjack gambling game with betting mechanics
 - `fun` — dice rolls (NdX format), coin flip, 8ball, rock-paper-scissors, random choice
 - `games` — interactive games (Pong, Snake, Conway's Game of Life) with button controls and auto-updates
 
 Data files (JSON in `data/`):
-- `ranks.json` — `{"user_id": {"xp": int, "level": int}}` - Level formula: `floor(sqrt(xp / 50))`
-- `economy.json` — `{"user_id": {"balance": int, "total_earned": int}}`
-- `settings.json` — `{"guild_id": {"prefix": str, "xp_enabled": bool, "modlog_channel": int|null, "autorole_enabled": bool, "autorole_id": int|null}}`
-- `warns.json` — `{"guild_id": {"user_id": [{"reason": str, "issued_by": str, "timestamp": str (ISO 8601)}]}}`
+- `ranks.json` — `{"users": {"user_id": {"xp": int, "level": int}}, "xp_cooldowns": {"user_id": float}}` - Level formula: `floor(sqrt(xp / 50))`
+- `economy.json` — `{"users": {"user_id": {"balance": int, "total_earned": int}}, "daily_cooldowns": {"user_id": float}}`
 
 Note: All files are auto-created on first use. User and guild IDs are always stored as strings.
 
