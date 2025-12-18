@@ -85,8 +85,8 @@ Current cogs in production (loaded by `bot.setup_hook()`):
 - `games` — interactive games (Pong, Snake, Conway's Game of Life) with button controls and auto-updates
 
 Data files (JSON in `data/`):
-- `ranks.json` — `{"user_id": {"xp": int, "level": int}}` - Level formula: `floor(sqrt(xp / 50))`
-- `economy.json` — `{"user_id": {"balance": int, "total_earned": int}}`
+- `ranks.json` — `{"users": {"user_id": {"xp": int, "level": int}}, "xp_cooldowns": {"user_id": float}}` - Level formula: `floor(sqrt(xp / 50))`
+- `economy.json` — `{"users": {"user_id": {"balance": int, "total_earned": int}}, "daily_cooldowns": {"user_id": float}}`
 
 Note: All files are auto-created on first use. User and guild IDs are always stored as strings.
 
