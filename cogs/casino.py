@@ -223,45 +223,6 @@ class Casino(commands.Cog):
         del self.active_games[user_id]
         await interaction.response.edit_message(embed=embed, view=None)
 
-
-class BlackjackView(discord.ui.View):
-    """View with Hit and Stand buttons for blackjack."""
-
-    def __init__(self, casino_cog, user):
-        super().__init__(timeout=120)  # 2 minute timeout
-        self.casino_cog = casino_cog
-        self.user = user
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        """Only allow the game owner to use buttons."""
-        if interaction.user.id != self.user.id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
-            return False
-        return True
-
-    @discord.ui.button(label="Hit", style=discord.ButtonStyle.primary, emoji="🎴")
-    async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.casino_cog.hit(interaction)
-
-    @discord.ui.button(label="Stand", style=discord.ButtonStyle.secondary, emoji="✋")
-    async def stand_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.casino_cog.stand(interaction)
-
-    async def on_timeout(self):
-        """Handle timeout - auto-stand."""
-        game = self.casino_cog.active_games.get(self.user.id)
-        if game:
-            # Clean up abandoned game - return bet
-            econ_cog = self.casino_cog.bot.get_cog('Economy')
-            if econ_cog:
-                try:
-                    econ_cog._add_balance(self.user.id, game['bet'])
-                except Exception as e:
-                    print(f"[blackjack] Failed to refund bet on timeout: {e}")
-            if self.user.id in self.casino_cog.active_games:
-                del self.casino_cog.active_games[self.user.id]
-
-
     # ========== SLOTS ==========
 
     @app_commands.command(name="slots", description="Play the slot machine (min bet: 10)")
@@ -785,6 +746,42 @@ class BlackjackView(discord.ui.View):
         if user_id in self.active_games:
             del self.active_games[user_id]
 
+class BlackjackView(discord.ui.View):
+    """View with Hit and Stand buttons for blackjack."""
+
+    def __init__(self, casino_cog, user):
+        super().__init__(timeout=120)  # 2 minute timeout
+        self.casino_cog = casino_cog
+        self.user = user
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Only allow the game owner to use buttons."""
+        if interaction.user.id != self.user.id:
+            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Hit", style=discord.ButtonStyle.primary, emoji="🎴")
+    async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.casino_cog.hit(interaction)
+
+    @discord.ui.button(label="Stand", style=discord.ButtonStyle.secondary, emoji="✋")
+    async def stand_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.casino_cog.stand(interaction)
+
+    async def on_timeout(self):
+        """Handle timeout - auto-stand."""
+        game = self.casino_cog.active_games.get(self.user.id)
+        if game:
+            # Clean up abandoned game - return bet
+            econ_cog = self.casino_cog.bot.get_cog('Economy')
+            if econ_cog:
+                try:
+                    econ_cog._add_balance(self.user.id, game['bet'])
+                except Exception as e:
+                    print(f"[blackjack] Failed to refund bet on timeout: {e}")
+            if self.user.id in self.casino_cog.active_games:
+                del self.casino_cog.active_games[self.user.id]
 
 class CrashView(discord.ui.View):
     """View with Cash Out button for crash game."""
