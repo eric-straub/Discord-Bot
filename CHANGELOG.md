@@ -4,11 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.2-alpha] - 2025-12-18
+
 ### Removed
 - Moderation cog (warnings, kick, ban, timeout, purge commands)
 - Settings cog (per-guild configuration system)
 
-## [0.0.1-alpha] - 2025-12-18
+## [0.0.1-alpha] - 2025-12-15
 
 ### Added
 - Initial alpha release
