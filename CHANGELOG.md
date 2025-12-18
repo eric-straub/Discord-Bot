@@ -6,9 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ## [0.0.2-alpha] - 2025-12-18
 
+### Added
+- Echo command (prefix and slash variants)
+- Git commit/timestamp information in `/version`
+- Persistent cooldown storage for fun and trivia commands
+
+### Changed
+- Added per-user cooldowns to fun and trivia commands
+- Migrated `data/ranks.json` and `data/economy.json` to a new data schema
+- Major casino code refactor consolidating game logic
+
 ### Removed
 - Moderation cog (warnings, kick, ban, timeout, purge commands)
 - Settings cog (per-guild configuration system)
+- Casino mini-games: coinflip, dice, and crash
 
 ## [0.0.1-alpha] - 2025-12-15
 
