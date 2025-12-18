@@ -1,4 +1,4 @@
-"""Casino cog — blackjack game where users can bet credits."""
+"""Casino cog — blackjack, roulette, and slots games where users can bet credits."""
 
 import random
 
@@ -8,7 +8,7 @@ from discord import app_commands
 
 
 class Casino(commands.Cog):
-    """Blackjack game for betting credits."""
+    """Casino games for betting credits: blackjack, roulette, and slots."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -221,6 +221,201 @@ class Casino(commands.Cog):
 
         del self.active_games[user_id]
         await interaction.response.edit_message(embed=embed, view=None)
+
+    @app_commands.command(name="roulette", description="Bet on roulette - red, black, odd, even, or a number")
+    @app_commands.describe(
+        bet="Amount to bet",
+        bet_type="What to bet on: red, black, odd, even, or a number (0-36)"
+    )
+    async def roulette(self, interaction: discord.Interaction, bet: int, bet_type: str):
+        """Play roulette with various betting options."""
+        await interaction.response.defer()
+
+        user_id = interaction.user.id
+
+        # Validate bet amount
+        if bet <= 0:
+            await interaction.followup.send("Bet must be greater than 0.", ephemeral=True)
+            return
+
+        # Check if user has enough credits
+        econ_cog = self.bot.get_cog('Economy')
+        if not econ_cog:
+            await interaction.followup.send("Economy system not available.", ephemeral=True)
+            return
+
+        econ_cog._ensure_user(user_id)
+        user_balance = econ_cog.economy[str(user_id)]['balance']
+
+        if user_balance < bet:
+            await interaction.followup.send(f"You don't have enough credits! Your balance: 🪙 {user_balance}", ephemeral=True)
+            return
+
+        # Deduct bet from balance
+        if not econ_cog._remove_balance(user_id, bet):
+            await interaction.followup.send("Failed to place bet.", ephemeral=True)
+            return
+
+        # Roulette wheel - 0-36
+        # Red: 1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36
+        # Black: 2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35
+        # Green: 0
+        red_numbers = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
+        black_numbers = {2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35}
+
+        # Spin the wheel
+        result = random.randint(0, 36)
+        
+        # Determine color
+        if result == 0:
+            color = "🟢 Green"
+            color_emoji = "🟢"
+        elif result in red_numbers:
+            color = "🔴 Red"
+            color_emoji = "🔴"
+        else:
+            color = "⚫ Black"
+            color_emoji = "⚫"
+
+        # Check if user won
+        bet_type_lower = bet_type.lower()
+        won = False
+        payout = 0
+
+        if bet_type_lower == "red" and result in red_numbers:
+            won = True
+            payout = bet * 2  # 1:1 payout
+        elif bet_type_lower == "black" and result in black_numbers:
+            won = True
+            payout = bet * 2  # 1:1 payout
+        elif bet_type_lower == "odd" and result > 0 and result % 2 == 1:
+            won = True
+            payout = bet * 2  # 1:1 payout
+        elif bet_type_lower == "even" and result > 0 and result % 2 == 0:
+            won = True
+            payout = bet * 2  # 1:1 payout
+        elif bet_type_lower.isdigit():
+            # Betting on a specific number
+            bet_number = int(bet_type_lower)
+            if 0 <= bet_number <= 36 and bet_number == result:
+                won = True
+                payout = bet * 36  # 35:1 payout
+            elif bet_number < 0 or bet_number > 36:
+                # Invalid number - refund bet
+                econ_cog._add_balance(user_id, bet)
+                await interaction.followup.send(f"Invalid number! Must be 0-36. Bet refunded.", ephemeral=True)
+                return
+
+        # Create result embed
+        embed = discord.Embed(title="🎡 Roulette", color=discord.Color.gold())
+        embed.add_field(name="Your Bet", value=f"{bet_type} for 🪙 {bet} credits", inline=False)
+        embed.add_field(name="Result", value=f"{color_emoji} **{result}** {color}", inline=False)
+
+        if won:
+            econ_cog._add_balance(user_id, payout)
+            profit = payout - bet
+            embed.add_field(name="Outcome", value=f"🎉 You win 🪙 {profit} credits!", inline=False)
+            embed.color = discord.Color.green()
+        else:
+            embed.add_field(name="Outcome", value=f"😢 You lose 🪙 {bet} credits.", inline=False)
+            embed.color = discord.Color.red()
+
+        await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="slots", description="Play the slot machine")
+    async def slots(self, interaction: discord.Interaction, bet: int):
+        """Play the slot machine - match 3 symbols to win."""
+        await interaction.response.defer()
+
+        user_id = interaction.user.id
+
+        # Validate bet amount
+        if bet <= 0:
+            await interaction.followup.send("Bet must be greater than 0.", ephemeral=True)
+            return
+
+        # Check if user has enough credits
+        econ_cog = self.bot.get_cog('Economy')
+        if not econ_cog:
+            await interaction.followup.send("Economy system not available.", ephemeral=True)
+            return
+
+        econ_cog._ensure_user(user_id)
+        user_balance = econ_cog.economy[str(user_id)]['balance']
+
+        if user_balance < bet:
+            await interaction.followup.send(f"You don't have enough credits! Your balance: 🪙 {user_balance}", ephemeral=True)
+            return
+
+        # Deduct bet from balance
+        if not econ_cog._remove_balance(user_id, bet):
+            await interaction.followup.send("Failed to place bet.", ephemeral=True)
+            return
+
+        # Slot symbols with weighted probabilities
+        # Symbol: (emoji, weight, multiplier)
+        symbols = [
+            ('🍒', 35, 2),   # Cherry - common, 2x
+            ('🍋', 30, 3),   # Lemon - common, 3x
+            ('🍊', 20, 5),   # Orange - uncommon, 5x
+            ('🍇', 10, 10),  # Grape - rare, 10x
+            ('💎', 4, 25),   # Diamond - very rare, 25x
+            ('7️⃣', 1, 100)  # Seven - jackpot, 100x
+        ]
+
+        # Create weighted list for random selection
+        weighted_symbols = []
+        for emoji, weight, _ in symbols:
+            weighted_symbols.extend([emoji] * weight)
+
+        # Spin the slots
+        reels = [random.choice(weighted_symbols) for _ in range(3)]
+
+        # Check for wins
+        won = False
+        payout = 0
+        multiplier = 0
+
+        if reels[0] == reels[1] == reels[2]:
+            # All three match - big win
+            won = True
+            for emoji, _, mult in symbols:
+                if emoji == reels[0]:
+                    multiplier = mult
+                    break
+            payout = bet * multiplier
+        elif reels[0] == reels[1] or reels[1] == reels[2] or reels[0] == reels[2]:
+            # Two match - small win (0.5x bet back)
+            won = True
+            multiplier = 0.5
+            payout = int(bet * 1.5)
+
+        # Create result embed
+        embed = discord.Embed(title="🎰 Slot Machine", color=discord.Color.gold())
+        embed.add_field(name="Your Bet", value=f"🪙 {bet} credits", inline=False)
+        embed.add_field(name="Result", value=f"**{reels[0]} | {reels[1]} | {reels[2]}**", inline=False)
+
+        if won:
+            econ_cog._add_balance(user_id, payout)
+            profit = payout - bet
+            if reels[0] == reels[1] == reels[2]:
+                embed.add_field(name="Outcome", value=f"🎉 **JACKPOT!** Three {reels[0]}! You win 🪙 {profit} credits! (x{multiplier})", inline=False)
+                embed.color = discord.Color.green()
+            else:
+                embed.add_field(name="Outcome", value=f"✨ Two match! You win 🪙 {profit} credits!", inline=False)
+                embed.color = discord.Color.blue()
+        else:
+            embed.add_field(name="Outcome", value=f"😢 No match. You lose 🪙 {bet} credits.", inline=False)
+            embed.color = discord.Color.red()
+
+        # Add paytable info
+        paytable = "**Paytable:**\n"
+        for emoji, _, mult in symbols:
+            paytable += f"{emoji} x3 = {mult}x\n"
+        paytable += "Any 2 match = 0.5x"
+        embed.add_field(name="Payouts", value=paytable, inline=False)
+
+        await interaction.followup.send(embed=embed)
 
 
 class BlackjackView(discord.ui.View):
