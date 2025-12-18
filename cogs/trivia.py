@@ -88,6 +88,7 @@ class Trivia(commands.Cog):
         self.active_trivia.pop(channel_id, None)
 
     @app_commands.command(name="trivia_post", description="Post a trivia question for others to answer")
+    @app_commands.checks.cooldown(1, 30.0)  # 1 use per 30 seconds
     async def trivia_post(self, interaction: discord.Interaction, question: str, answer: str, xp: int = 50, credits: int = 50, duration: int = 10):
         """Post a trivia question. `answer` may include multiple acceptable answers separated by `,` or `|`.
 

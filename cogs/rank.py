@@ -13,13 +13,26 @@ os.makedirs("data", exist_ok=True)
 
 def load_ranks():
     if not os.path.exists(RANK_FILE):
-        return {}
+        return {"users": {}, "xp_cooldowns": {}}
     with open(RANK_FILE, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+        # Migrate old format to new format
+        if "users" not in data:
+            data = {"users": data, "xp_cooldowns": {}}
+        return data
 
 def save_ranks(data):
     with open(RANK_FILE, "w") as f:
         json.dump(data, f, indent=4)
+
+
+def save_ranks_with_cooldowns(ranks_data, cooldowns):
+    """Save rank data and cooldowns together."""
+    data = {
+        "users": ranks_data,
+        "xp_cooldowns": {str(k): v for k, v in cooldowns.items()}
+    }
+    save_ranks(data)
 
 def calculate_level(xp: int) -> int:
     # Level curve: level = sqrt(xp / 50)
@@ -29,8 +42,9 @@ def calculate_level(xp: int) -> int:
 class RankSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.ranks = load_ranks()
-        self.cooldowns = {}  # user_id: timestamp
+        data = load_ranks()
+        self.ranks = data.get("users", {})
+        self.cooldowns = {int(k): v for k, v in data.get("xp_cooldowns", {}).items()}  # user_id: timestamp
 
     async def award_xp(self, user_id: int, amount: int):
         """Add XP and check for level-up."""
@@ -46,7 +60,7 @@ class RankSystem(commands.Cog):
         user["xp"] += amount
         user["level"] = calculate_level(user["xp"])
 
-        save_ranks(self.ranks)
+        save_ranks_with_cooldowns(self.ranks, self.cooldowns)
 
         # Level up!
         if user["level"] > old_level:
@@ -58,6 +72,18 @@ class RankSystem(commands.Cog):
         """Award XP per message with cooldown to prevent spam abuse."""
         if message.author.bot:
             return
+
+        # Check if in a guild
+        if not message.guild:
+            return
+
+        # Check if XP is enabled for this guild
+        settings_cog = self.bot.get_cog('Settings')
+        if settings_cog:
+            gid = str(message.guild.id)
+            settings_cog._ensure_guild(message.guild.id)
+            if not settings_cog.settings.get(gid, {}).get("xp_enabled", True):
+                return
 
         user_id = message.author.id
         now = time.time()
@@ -107,7 +133,7 @@ class RankSystem(commands.Cog):
             self.ranks[uid] = {"xp": 0, "level": 0}
         self.ranks[uid]["xp"] = max(0, amount)
         self.ranks[uid]["level"] = calculate_level(self.ranks[uid]["xp"])
-        save_ranks(self.ranks)
+        save_ranks_with_cooldowns(self.ranks, self.cooldowns)
         await interaction.response.send_message(f"Set {member.display_name}'s XP to {self.ranks[uid]['xp']} (Level {self.ranks[uid]['level']}).")
 
     @app_commands.command(name="xp_add", description="Add XP to a user (admin only)")
@@ -122,7 +148,7 @@ class RankSystem(commands.Cog):
         self.ranks[uid]["xp"] = max(0, self.ranks[uid]["xp"] + amount)
         old_level = self.ranks[uid]["level"]
         self.ranks[uid]["level"] = calculate_level(self.ranks[uid]["xp"])
-        save_ranks(self.ranks)
+        save_ranks_with_cooldowns(self.ranks, self.cooldowns)
         await interaction.response.send_message(f"Added {amount} XP to {member.display_name}. Level: {old_level} → {self.ranks[uid]['level']}")
 
     @app_commands.command(name="xp_recalc", description="Recalculate levels for all users from XP (admin only)")
@@ -133,7 +159,7 @@ class RankSystem(commands.Cog):
 
         for uid, data in self.ranks.items():
             data["level"] = calculate_level(data.get("xp", 0))
-        save_ranks(self.ranks)
+        save_ranks_with_cooldowns(self.ranks, self.cooldowns)
         await interaction.response.send_message("Recalculated levels for all users.")
 
     # Slash Command: /leaderboard

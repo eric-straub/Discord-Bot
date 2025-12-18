@@ -4,5 +4,5 @@ __pycache__/
 *.env
 venv/
 env/
-data/ranks.json
-data/parry.json
+data/*.json
+!data/jsons_go_here.txt

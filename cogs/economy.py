@@ -20,9 +20,13 @@ DAILY_REWARD = 100
 def load_economy():
     """Load economy data from JSON."""
     if not os.path.exists(ECONOMY_FILE):
-        return {}
+        return {"users": {}, "daily_cooldowns": {}}
     with open(ECONOMY_FILE, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+        # Migrate old format to new format
+        if "users" not in data:
+            data = {"users": data, "daily_cooldowns": {}}
+        return data
 
 
 def save_economy(data):
@@ -31,13 +35,23 @@ def save_economy(data):
         json.dump(data, f, indent=4)
 
 
+def save_economy_with_cooldowns(economy_data, cooldowns):
+    """Save economy data and cooldowns together."""
+    data = {
+        "users": economy_data,
+        "daily_cooldowns": {str(k): v for k, v in cooldowns.items()}
+    }
+    save_economy(data)
+
+
 class Economy(commands.Cog):
     """Currency and economy system."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.economy = load_economy()
-        self.daily_cooldowns = {}  # user_id: timestamp
+        data = load_economy()
+        self.economy = data.get("users", {})
+        self.daily_cooldowns = {int(k): v for k, v in data.get("daily_cooldowns", {}).items()}  # user_id: timestamp
 
     def _ensure_user(self, user_id: int):
         """Ensure a user exists in the economy system."""
@@ -51,7 +65,7 @@ class Economy(commands.Cog):
         self._ensure_user(user_id)
         self.economy[uid]["balance"] += amount
         self.economy[uid]["total_earned"] += max(0, amount)
-        save_economy(self.economy)
+        save_economy_with_cooldowns(self.economy, self.daily_cooldowns)
 
     def _remove_balance(self, user_id: int, amount: int) -> bool:
         """Remove currency from a user's balance. Returns True if successful."""
@@ -60,7 +74,7 @@ class Economy(commands.Cog):
         if self.economy[uid]["balance"] < amount:
             return False
         self.economy[uid]["balance"] -= amount
-        save_economy(self.economy)
+        save_economy_with_cooldowns(self.economy, self.daily_cooldowns)
         return True
 
     @app_commands.command(name="balance", description="Check your wallet balance")
@@ -100,6 +114,7 @@ class Economy(commands.Cog):
 
         self._add_balance(interaction.user.id, DAILY_REWARD)
         self.daily_cooldowns[uid] = now
+        save_economy_with_cooldowns(self.economy, self.daily_cooldowns)
 
         embed = discord.Embed(
             title="Daily Bonus Claimed!",
@@ -224,7 +239,8 @@ class Economy(commands.Cog):
             return
 
         self.economy = {}
-        save_economy(self.economy)
+        self.daily_cooldowns = {}
+        save_economy_with_cooldowns(self.economy, self.daily_cooldowns)
         await interaction.response.send_message("✅ Economy data reset.")
 
 

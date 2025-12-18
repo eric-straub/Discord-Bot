@@ -254,14 +254,19 @@ class BlackjackView(discord.ui.View):
             # Clean up abandoned game - return bet
             econ_cog = self.casino_cog.bot.get_cog('Economy')
             if econ_cog:
-                econ_cog._add_balance(self.user.id, game['bet'])
-            del self.casino_cog.active_games[self.user.id]
+                try:
+                    econ_cog._add_balance(self.user.id, game['bet'])
+                except Exception as e:
+                    print(f"[blackjack] Failed to refund bet on timeout: {e}")
+            if self.user.id in self.casino_cog.active_games:
+                del self.casino_cog.active_games[self.user.id]
 
 
     # ========== SLOTS ==========
 
     @app_commands.command(name="slots", description="Play the slot machine (min bet: 10)")
     @app_commands.describe(bet="Amount of credits to bet")
+    @app_commands.checks.cooldown(1, 5.0)  # 1 use per 5 seconds
     async def slots(self, interaction: discord.Interaction, bet: int):
         """Spin the slot machine - match symbols to win!"""
         await interaction.response.defer()
@@ -336,6 +341,7 @@ class BlackjackView(discord.ui.View):
         bet="Amount of credits to bet",
         choice="Your bet: 'red', 'black', 'even', 'odd', or a number (0-36)"
     )
+    @app_commands.checks.cooldown(1, 5.0)  # 1 use per 5 seconds
     async def roulette(self, interaction: discord.Interaction, bet: int, choice: str):
         """Spin the roulette wheel!"""
         await interaction.response.defer()
@@ -450,6 +456,7 @@ class BlackjackView(discord.ui.View):
         bet="Amount of credits to bet",
         choice="Your guess: heads or tails"
     )
+    @app_commands.checks.cooldown(1, 5.0)  # 1 use per 5 seconds
     async def coinflip(self, interaction: discord.Interaction, bet: int, choice: str):
         """Bet on a coin flip!"""
         await interaction.response.defer()
@@ -714,7 +721,10 @@ class BlackjackView(discord.ui.View):
                 # Return bet on error
                 econ_cog = self.bot.get_cog('Economy')
                 if econ_cog:
-                    econ_cog._add_balance(user_id, game['bet'])
+                    try:
+                        econ_cog._add_balance(user_id, game['bet'])
+                    except Exception as refund_error:
+                        print(f"[crash] Failed to refund bet on error: {refund_error}")
                 del self.active_games[user_id]
 
     def _get_crash_embed(self, game, user, crashed=False):
@@ -803,8 +813,11 @@ class CrashView(discord.ui.View):
             # Award current multiplier
             econ_cog = self.casino_cog.bot.get_cog('Economy')
             if econ_cog:
-                winnings = int(game['bet'] * game['current_multiplier'])
-                econ_cog._add_balance(self.user.id, winnings)
+                try:
+                    winnings = int(game['bet'] * game['current_multiplier'])
+                    econ_cog._add_balance(self.user.id, winnings)
+                except Exception as e:
+                    print(f"[crash] Failed to award winnings on timeout: {e}")
             
             if self.user.id in self.casino_cog.active_games:
                 del self.casino_cog.active_games[self.user.id]
