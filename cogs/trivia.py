@@ -155,13 +155,10 @@ class Trivia(commands.Cog):
         if isinstance(error, app_commands.CommandOnCooldown):
             # Convert seconds to a human-readable format
             remaining = int(error.retry_after)
-            message = f"⏱️ This command is on cooldown. Please wait **{remaining} seconds** before posting another trivia question."
-            
-            # Check if interaction has already been responded to
-            if interaction.response.is_done():
-                await interaction.followup.send(message, ephemeral=True)
-            else:
-                await interaction.response.send_message(message, ephemeral=True)
+            await interaction.response.send_message(
+                f"⏱️ This command is on cooldown. Please wait **{remaining} seconds** before posting another trivia question.",
+                ephemeral=True
+            )
         else:
             # Re-raise other errors for the default error handler
             raise error
