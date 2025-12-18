@@ -35,7 +35,7 @@ class General(commands.Cog):
         version = getattr(self.bot, 'version', 'Unknown')
         
         embed = discord.Embed(
-            title="🤖 Bot Version",
+            title="Discord Bot Version",
             description=f"**Version:** `{version}`",
             color=discord.Color.blue()
         )
