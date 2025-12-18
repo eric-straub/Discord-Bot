@@ -388,7 +388,7 @@ class Casino(commands.Cog):
             # Two match - small win (1.5x total return = 0.5x profit)
             won = True
             multiplier = 1.5
-            payout = int(bet * 1.5)
+            payout = int(bet * multiplier)
 
         # Create result embed
         embed = discord.Embed(title="🎰 Slot Machine", color=discord.Color.gold())
