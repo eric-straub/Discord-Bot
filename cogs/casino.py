@@ -385,9 +385,9 @@ class Casino(commands.Cog):
                     break
             payout = bet * multiplier
         elif reels[0] == reels[1] or reels[1] == reels[2] or reels[0] == reels[2]:
-            # Two match - small win (0.5x bet back)
+            # Two match - small win (1.5x total return = 0.5x profit)
             won = True
-            multiplier = 0.5
+            multiplier = 1.5
             payout = int(bet * 1.5)
 
         # Create result embed
@@ -402,7 +402,7 @@ class Casino(commands.Cog):
                 embed.add_field(name="Outcome", value=f"🎉 **JACKPOT!** Three {reels[0]}! You win 🪙 {profit} credits! (x{multiplier})", inline=False)
                 embed.color = discord.Color.green()
             else:
-                embed.add_field(name="Outcome", value=f"✨ Two match! You win 🪙 {profit} credits!", inline=False)
+                embed.add_field(name="Outcome", value=f"✨ Two match! You win 🪙 {profit} credits! (x{multiplier})", inline=False)
                 embed.color = discord.Color.blue()
         else:
             embed.add_field(name="Outcome", value=f"😢 No match. You lose 🪙 {bet} credits.", inline=False)
@@ -412,7 +412,7 @@ class Casino(commands.Cog):
         paytable = "**Paytable:**\n"
         for emoji, _, mult in symbols:
             paytable += f"{emoji} x3 = {mult}x\n"
-        paytable += "Any 2 match = 0.5x"
+        paytable += "Any 2 match = 1.5x"
         embed.add_field(name="Payouts", value=paytable, inline=False)
 
         await interaction.followup.send(embed=embed)
