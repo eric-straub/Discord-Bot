@@ -297,14 +297,18 @@ class Casino(commands.Cog):
         elif bet_type_lower.isdigit():
             # Betting on a specific number
             bet_number = int(bet_type_lower)
-            if 0 <= bet_number <= 36 and bet_number == result:
-                won = True
-                payout = bet * 36  # 35:1 payout
-            elif bet_number < 0 or bet_number > 36:
+            # Validate number is within roulette range
+            if bet_number < 0 or bet_number > 36:
                 # Invalid number - refund bet
                 econ_cog._add_balance(user_id, bet)
-                await interaction.followup.send(f"Invalid number! Must be 0-36. Bet refunded.", ephemeral=True)
+                await interaction.followup.send(
+                    "Invalid number! Must be 0-36. Bet refunded.",
+                    ephemeral=True,
+                )
                 return
+            if bet_number == result:
+                won = True
+                payout = bet * 36  # 35:1 payout
 
         # Create result embed
         embed = discord.Embed(title="🎡 Roulette", color=discord.Color.gold())
