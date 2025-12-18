@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import subprocess
+from datetime import datetime, timezone
 
 
 class General(commands.Cog):
@@ -39,6 +41,53 @@ class General(commands.Cog):
         )
         embed.add_field(name="Status", value="Alpha Release", inline=True)
         embed.add_field(name="Discord.py", value=f"`{discord.__version__}`", inline=True)
+        
+        # Get last git commit timestamp
+        try:
+            # Get timestamp of last commit
+            result = subprocess.run(
+                ['git', 'log', '-1', '--format=%ct'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                commit_timestamp = int(result.stdout.strip())
+                commit_dt = datetime.fromtimestamp(commit_timestamp, tz=timezone.utc)
+                now = datetime.now(timezone.utc)
+                
+                # Calculate time difference
+                delta = now - commit_dt
+                
+                # Format time ago
+                if delta.days > 0:
+                    if delta.days == 1:
+                        time_ago = "1 day ago"
+                    else:
+                        time_ago = f"{delta.days} days ago"
+                else:
+                    hours = delta.seconds // 3600
+                    minutes = (delta.seconds % 3600) // 60
+                    
+                    if hours > 0:
+                        if hours == 1:
+                            time_ago = "1 hour ago"
+                        else:
+                            time_ago = f"{hours} hours ago"
+                    elif minutes > 0:
+                        if minutes == 1:
+                            time_ago = "1 minute ago"
+                        else:
+                            time_ago = f"{minutes} minutes ago"
+                    else:
+                        time_ago = "Just now"
+                
+                embed.add_field(name="Last Update", value=time_ago, inline=False)
+        except Exception as e:
+            print(f"[version] Failed to get git info: {e}")
+            # Silently ignore git errors - command still works without this field
+        
         embed.set_footer(text="Discord Bot by Eric Straub")
         
         await interaction.response.send_message(embed=embed)
