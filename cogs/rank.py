@@ -77,14 +77,6 @@ class RankSystem(commands.Cog):
         if not message.guild:
             return
 
-        # Check if XP is enabled for this guild
-        settings_cog = self.bot.get_cog('Settings')
-        if settings_cog:
-            gid = str(message.guild.id)
-            settings_cog._ensure_guild(message.guild.id)
-            if not settings_cog.settings.get(gid, {}).get("xp_enabled", True):
-                return
-
         user_id = message.author.id
         now = time.time()
 
