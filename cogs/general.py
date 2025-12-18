@@ -20,6 +20,12 @@ class General(commands.Cog):
         """Friendly greeting command."""
         await interaction.response.send_message(f"Hello, {interaction.user.mention}! 👋")
 
+    @app_commands.command(name="echo", description="Make the bot repeat your message")
+    @app_commands.describe(message="The message to repeat")
+    async def echo(self, interaction: discord.Interaction, message: str):
+        """Repeat the user's message."""
+        await interaction.response.send_message(message)
+
     @commands.command(name="ping")
     async def ping_cmd(self, ctx):
         """Prefix command version of ping."""
