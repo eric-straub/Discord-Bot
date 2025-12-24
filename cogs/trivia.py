@@ -106,6 +106,11 @@ class Trivia(commands.Cog):
             await interaction.followup.send("This command must be used in a guild channel.", ephemeral=True)
             return
 
+        # Check if channel supports sending messages
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            await interaction.followup.send("This command can only be used in text channels or threads.", ephemeral=True)
+            return
+
         if channel.id in self.active_trivia:
             await interaction.followup.send("There's already an active trivia in this channel. Wait for it to finish or cancel it.", ephemeral=True)
             return
@@ -179,7 +184,8 @@ class Trivia(commands.Cog):
 
         trivia = self.active_trivia[channel.id]
         is_asker = trivia.get('asker_id') == interaction.user.id
-        if not is_asker and not interaction.user.guild_permissions.manage_guild:
+        is_staff = isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.manage_guild
+        if not is_asker and not is_staff:
             await interaction.response.send_message("Only the asker or staff can cancel the trivia.", ephemeral=True)
             return
 
