@@ -8,7 +8,7 @@ from discord import app_commands
 from dotenv import load_dotenv
 
 # Bot version
-__version__ = "0.0.2-alpha"
+__version__ = "0.0.3-alpha"
 
 # Load environment variables
 load_dotenv()
