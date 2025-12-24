@@ -217,7 +217,10 @@ class Trivia(commands.Cog):
             # Allow multiple users to answer correctly
             asker_id = trivia.get('asker_id')
             if message.author.id == asker_id:
-                await channel.send(f"Nice try {message.author.mention}, the asker cannot answer their own trivia.")
+                try:
+                    await message.add_reaction("❌")
+                except Exception:
+                    pass
                 return
 
             # Check if this user already answered correctly
@@ -252,7 +255,10 @@ class Trivia(commands.Cog):
                 except Exception as e:
                     print(f"Error awarding credits: {e}")
 
-            await channel.send(f"✅ Correct! {message.author.mention} answered correctly and wins {awarded_xp} XP and {awarded_credits} credits.{level_up_msg or ''}")
+            try:
+                await message.add_reaction("✅")
+            except Exception:
+                pass
 
             # Trivia continues until time expires (don't cancel task or remove trivia)
 
