@@ -80,8 +80,13 @@ class Trivia(commands.Cog):
         channel = self.bot.get_channel(channel_id)
         if channel:
             revealed = self._wrap_spoiler(trivia.get('answer_display', ''))
+            correct_users = trivia.get('correct_users', [])
             if reason == "time":
-                await channel.send(f"⏱️ Trivia ended — no correct answers in time. The answer was: {revealed}")
+                if correct_users:
+                    user_mentions = ", ".join([f"<@{uid}>" for uid in correct_users])
+                    await channel.send(f"⏱️ Trivia ended! The answer was: {revealed}\n✅ Correct answerers: {user_mentions}")
+                else:
+                    await channel.send(f"⏱️ Trivia ended — no correct answers in time. The answer was: {revealed}")
             elif reason == "cancel":
                 await channel.send(f"🛑 Trivia canceled by the asker. The answer was: {revealed}")
         # cleanup
@@ -118,7 +123,8 @@ class Trivia(commands.Cog):
             "xp": max(0, xp),
             "credits": max(0, credits),
             "ends_at": time.time() + max(1, duration) * 60,
-            "task": None
+            "task": None,
+            "correct_users": []  # Track all users who answered correctly
         }
 
         # Announce trivia
@@ -208,11 +214,21 @@ class Trivia(commands.Cog):
                 break
         
         if matched:
-            # first correct answer wins
+            # Allow multiple users to answer correctly
             asker_id = trivia.get('asker_id')
             if message.author.id == asker_id:
                 await channel.send(f"Nice try {message.author.mention}, the asker cannot answer their own trivia.")
                 return
+
+            # Check if this user already answered correctly
+            correct_users = trivia.get('correct_users', [])
+            if message.author.id in correct_users:
+                await message.add_reaction("✅")  # Silent acknowledgment
+                return
+
+            # Add user to correct answerers list
+            correct_users.append(message.author.id)
+            trivia['correct_users'] = correct_users
 
             # award XP and credits via other cogs if available
             awarded_xp = trivia.get('xp', 0)
@@ -238,11 +254,7 @@ class Trivia(commands.Cog):
 
             await channel.send(f"✅ Correct! {message.author.mention} answered correctly and wins {awarded_xp} XP and {awarded_credits} credits.{level_up_msg or ''}")
 
-            # cleanup: cancel watcher and remove active trivia
-            task = trivia.get('task')
-            if task and not task.done():
-                task.cancel()
-            self.active_trivia.pop(channel.id, None)
+            # Trivia continues until time expires (don't cancel task or remove trivia)
 
 
 async def setup(bot):

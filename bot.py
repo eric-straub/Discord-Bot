@@ -89,6 +89,10 @@ bot = MyBot()
 
 @bot.event
 async def on_ready():
+    if bot.user is None:
+        print("Error: bot.user is None in on_ready event")
+        return
+    
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
 
     # Sync slash commands on startup
@@ -96,5 +100,9 @@ async def on_ready():
     print("Slash commands synced.")
     print("Bot is ready.")
 
+if TOKEN is None:
+    print("Error: DISCORD_TOKEN not found in environment variables.")
+    print("Please create a .env file with DISCORD_TOKEN set.")
+    exit(1)
 
 bot.run(TOKEN)
