@@ -18,6 +18,8 @@ class Trivia(commands.Cog):
         self.bot = bot
         # active_trivia: channel_id -> trivia dict
         self.active_trivia = {}
+        # pending_trivia: user_id -> {question, channel_id, message}
+        self.pending_trivia = {}
 
     def _normalize_answers(self, raw: str):
         # Accept multiple answers separated by `|` or `,`
@@ -99,10 +101,41 @@ class Trivia(commands.Cog):
         # Extract spoilers (these are the answers)
         spoilers = self._extract_spoilers(content)
         if not spoilers:
+            # No answer provided - DM the user to ask for it
+            question = content.strip()
+            if not question:
+                try:
+                    await message.add_reaction("❓")  # No question found
+                except Exception:
+                    pass
+                return
+            
+            # Store pending trivia
+            self.pending_trivia[message.author.id] = {
+                "question": question,
+                "channel_id": channel.id,
+                "message": message
+            }
+            
+            # DM the user
             try:
-                await message.add_reaction("❓")  # No answer found
-            except Exception:
-                pass
+                await message.author.send(
+                    f"❓ You posted a trivia question but didn't include an answer in spoiler tags.\n\n"
+                    f"**Question:** {question}\n\n"
+                    f"Please reply to this DM with the answer in spoiler tags, e.g., `||your answer||`"
+                )
+                await message.add_reaction("📬")  # Mailbox emoji to indicate DM sent
+            except discord.Forbidden:
+                try:
+                    await message.add_reaction("🔒")  # Can't DM user
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"Error sending DM: {e}")
+                try:
+                    await message.add_reaction("❓")
+                except Exception:
+                    pass
             return
         
         # The first spoiler is the answer
@@ -177,6 +210,116 @@ class Trivia(commands.Cog):
             await message.add_reaction("✅")
         except Exception:
             pass
+
+    async def _handle_trivia_answer_dm(self, message: discord.Message):
+        """Handle DM reply with trivia answer."""
+        user_id = message.author.id
+        pending = self.pending_trivia.get(user_id)
+        if not pending:
+            return
+        
+        # Extract spoilers from DM
+        spoilers = self._extract_spoilers(message.content)
+        if not spoilers:
+            try:
+                await message.channel.send(
+                    "❓ Please provide the answer in spoiler tags, e.g., `||your answer||`"
+                )
+            except Exception:
+                pass
+            return
+        
+        # Get the answer
+        answer_text = spoilers[0]
+        answers = self._normalize_answers(answer_text)
+        if not answers:
+            try:
+                await message.channel.send(
+                    "❓ Invalid answer format. Please try again with spoiler tags, e.g., `||your answer||`"
+                )
+            except Exception:
+                pass
+            return
+        
+        # Get the channel where trivia was posted
+        channel = self.bot.get_channel(pending["channel_id"])
+        if not channel:
+            try:
+                await message.channel.send("❌ Could not find the original channel. Trivia canceled.")
+            except Exception:
+                pass
+            self.pending_trivia.pop(user_id, None)
+            return
+        
+        # Check if there's already active trivia in that channel
+        if channel.id in self.active_trivia:
+            try:
+                await message.channel.send(
+                    "⏸️ There's already an active trivia in that channel. Your question was not posted."
+                )
+            except Exception:
+                pass
+            self.pending_trivia.pop(user_id, None)
+            return
+        
+        # Calculate end time: 6am the next day
+        now = datetime.now()
+        tomorrow = now.date() + timedelta(days=1)
+        next_6am = datetime.combine(tomorrow, datetime.min.time()).replace(hour=6)
+        ends_at = next_6am.timestamp()
+        
+        # Default rewards
+        xp = 50
+        credits = 50
+        
+        trivia = {
+            "asker_id": user_id,
+            "question": pending["question"],
+            "answers": answers,
+            "answer_display": answer_text,
+            "xp": xp,
+            "credits": credits,
+            "ends_at": ends_at,
+            "task": None,
+            "correct_users": []
+        }
+        
+        # Store trivia
+        self.active_trivia[channel.id] = trivia
+        
+        # Start timeout watcher
+        async def watcher():
+            try:
+                remaining = trivia['ends_at'] - time.time()
+                if remaining > 0:
+                    await asyncio.sleep(remaining)
+                if channel.id in self.active_trivia:
+                    await self._end_trivia(channel.id, reason="time")
+            except asyncio.CancelledError:
+                return
+        
+        task = self.bot.loop.create_task(watcher())
+        trivia['task'] = task
+        
+        # React to original message
+        original_msg = pending.get("message")
+        if original_msg:
+            try:
+                await original_msg.add_reaction("✅")
+            except Exception:
+                pass
+        
+        # Confirm to user via DM
+        try:
+            await message.channel.send(
+                f"✅ Trivia question posted! It will remain active until 6am tomorrow."
+            )
+        except Exception:
+            pass
+        
+        # Remove from pending
+        self.pending_trivia.pop(user_id, None)
+
 
 
     async def _end_trivia(self, channel_id: int, reason: str = "time"):
@@ -309,6 +452,11 @@ class Trivia(commands.Cog):
         if message.author.bot:
             return
         channel = message.channel
+        
+        # Check if this is a DM with a pending trivia answer
+        if isinstance(channel, discord.DMChannel) and message.author.id in self.pending_trivia:
+            await self._handle_trivia_answer_dm(message)
+            return
         
         # Check if message mentions @Daily Trivia to create a new trivia question
         if "@Daily Trivia" in message.content or "@daily trivia" in message.content.lower():
