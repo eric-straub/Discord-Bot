@@ -4,6 +4,7 @@ import asyncio
 import time
 import difflib
 import re
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
@@ -72,6 +73,111 @@ class Trivia(commands.Cog):
         # strip stray pipes then wrap
         inner = s.strip('|')
         return f"||{inner}||"
+
+    async def _handle_trivia_mention(self, message: discord.Message):
+        """Handle when someone mentions @Daily Trivia to create a trivia question."""
+        channel = message.channel
+        
+        # Check if channel supports sending messages
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            return
+        
+        # Check if there's already active trivia in this channel
+        if channel.id in self.active_trivia:
+            try:
+                await message.add_reaction("⏸️")  # Pause/wait emoji
+            except Exception:
+                pass
+            return
+        
+        # Extract question and answer from the message
+        content = message.content
+        
+        # Remove the @Daily Trivia mention
+        content = re.sub(r"@Daily Trivia", "", content, flags=re.IGNORECASE).strip()
+        
+        # Extract spoilers (these are the answers)
+        spoilers = self._extract_spoilers(content)
+        if not spoilers:
+            try:
+                await message.add_reaction("❓")  # No answer found
+            except Exception:
+                pass
+            return
+        
+        # The first spoiler is the answer
+        answer_text = spoilers[0]
+        
+        # Remove spoiler tags from content to get the question
+        question = re.sub(r"\|\|.+?\|\|", "", content, flags=re.DOTALL).strip()
+        
+        if not question:
+            try:
+                await message.add_reaction("❓")  # No question found
+            except Exception:
+                pass
+            return
+        
+        # Parse the answer for multiple acceptable answers
+        answers = self._normalize_answers(answer_text)
+        if not answers:
+            try:
+                await message.add_reaction("❓")
+            except Exception:
+                pass
+            return
+        
+        # Calculate end time: 6am the next day
+        now = datetime.now()
+        
+        # Get tomorrow's date
+        tomorrow = now.date() + timedelta(days=1)
+        
+        # Set end time to 6am tomorrow
+        next_6am = datetime.combine(tomorrow, datetime.min.time()).replace(hour=6)
+        
+        # Convert to Unix timestamp
+        ends_at = next_6am.timestamp()
+        
+        # Default rewards
+        xp = 50
+        credits = 50
+        
+        trivia = {
+            "asker_id": message.author.id,
+            "question": question,
+            "answers": answers,
+            "answer_display": answer_text,
+            "xp": xp,
+            "credits": credits,
+            "ends_at": ends_at,
+            "task": None,
+            "correct_users": []
+        }
+        
+        # Store trivia
+        self.active_trivia[channel.id] = trivia
+        
+        # Start timeout watcher
+        async def watcher():
+            try:
+                remaining = trivia['ends_at'] - time.time()
+                if remaining > 0:
+                    await asyncio.sleep(remaining)
+                if channel.id in self.active_trivia:
+                    await self._end_trivia(channel.id, reason="time")
+            except asyncio.CancelledError:
+                return
+        
+        task = self.bot.loop.create_task(watcher())
+        trivia['task'] = task
+        
+        # Add checkmark reaction to confirm trivia was created
+        try:
+            await message.add_reaction("✅")
+        except Exception:
+            pass
+
 
     async def _end_trivia(self, channel_id: int, reason: str = "time"):
         trivia = self.active_trivia.get(channel_id)
@@ -203,6 +309,12 @@ class Trivia(commands.Cog):
         if message.author.bot:
             return
         channel = message.channel
+        
+        # Check if message mentions @Daily Trivia to create a new trivia question
+        if "@Daily Trivia" in message.content or "@daily trivia" in message.content.lower():
+            await self._handle_trivia_mention(message)
+            return
+        
         trivia = self.active_trivia.get(channel.id)
         if not trivia:
             return
