@@ -458,8 +458,8 @@ class Trivia(commands.Cog):
             await self._handle_trivia_answer_dm(message)
             return
         
-        # Check if message mentions @Daily Trivia to create a new trivia question
-        if "@Daily Trivia" in message.content or "@daily trivia" in message.content.lower():
+        # Check if message mentions "Category:" to create a new trivia question
+        if "Category:" in message.content or "category:" in message.content.lower():
             await self._handle_trivia_mention(message)
             return
         
