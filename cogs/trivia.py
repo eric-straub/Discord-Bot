@@ -328,16 +328,45 @@ class Trivia(commands.Cog):
             return
         channel = self.bot.get_channel(channel_id)
         if channel:
-            revealed = self._wrap_spoiler(trivia.get('answer_display', ''))
+            # Create embed for trivia end
+            embed = discord.Embed(
+                title="🎯 Trivia Ended" if reason == "time" else "🛑 Trivia Canceled",
+                color=discord.Color.blue() if reason == "time" else discord.Color.orange(),
+                timestamp=discord.utils.utcnow()
+            )
+            
+            # Add question
+            embed.add_field(name="Question", value=trivia.get('question', 'N/A'), inline=False)
+            
+            # Add answer (without spoiler tags)
+            answer_display = trivia.get('answer_display', 'N/A')
+            # Remove spoiler tags for display
+            answer_display = answer_display.replace('||', '')
+            embed.add_field(name="Answer", value=answer_display, inline=False)
+            
+            # Add correct answerers without pinging
             correct_users = trivia.get('correct_users', [])
-            if reason == "time":
-                if correct_users:
-                    user_mentions = ", ".join([f"<@{uid}>" for uid in correct_users])
-                    await channel.send(f"⏱️ Trivia ended! The answer was: {revealed}\n✅ Correct answerers: {user_mentions}")
-                else:
-                    await channel.send(f"⏱️ Trivia ended — no correct answers in time. The answer was: {revealed}")
-            elif reason == "cancel":
-                await channel.send(f"🛑 Trivia canceled by the asker. The answer was: {revealed}")
+            if correct_users:
+                # Get user objects to display names without pinging
+                user_names = []
+                for uid in correct_users:
+                    user = self.bot.get_user(uid)
+                    if user:
+                        user_names.append(user.display_name)
+                    else:
+                        user_names.append(f"User {uid}")
+                
+                answerers_text = ", ".join(user_names)
+                embed.add_field(name="✅ Correct Answerers", value=answerers_text, inline=False)
+            else:
+                embed.add_field(name="✅ Correct Answerers", value="No correct answers", inline=False)
+            
+            # Add rewards info
+            xp = trivia.get('xp', 0)
+            credits = trivia.get('credits', 0)
+            embed.add_field(name="Rewards (Per Correct Answer)", value=f"{xp} XP, {credits} Credits", inline=False)
+            
+            await channel.send(embed=embed)
         # cleanup
         self.active_trivia.pop(channel_id, None)
 
