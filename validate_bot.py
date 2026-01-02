@@ -106,9 +106,7 @@ def main():
         "cogs/rank.py",
         "cogs/fun.py",
         "cogs/games.py",
-        "cogs/moderation.py",
         "cogs/economy.py",
-        "cogs/settings.py",
         "cogs/trivia.py",
         "cogs/casino.py",
     ]
@@ -179,7 +177,6 @@ def main():
     data_files = [
         "data/ranks.json",
         "data/economy.json",
-        "data/warns.json",
         "data/settings.json",
     ]
     

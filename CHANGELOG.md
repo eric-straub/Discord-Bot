@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.0.3-alpha] - 2026-1-2
+
+Happy New Year! In this update I've added some more functionality to the trivia system. Mainly, trivia questions are now created automatically by listening for Nick's trademark "Category:" line.
+
+### Added
+- Automatic trivia creation by detecting manually typed questions
+- Multi-answer trivia support allowing multiple users to answer correctly within the time window
+- Reaction-based feedback for trivia answers (✅ for correct, ❌ for asker self-answer attempts)
+- Channel type validation for trivia command (text channels and threads only)
+
+### Changed
+- Trivia sessions now continue until time expires rather than ending on first correct answer
+- Trivia end message shows all users who answered correctly
+- Improved permission checking for trivia cancellation (handles non-Member users)
+
+### Removed
+
 
 ## [0.0.2-alpha] - 2025-12-18
 
