@@ -2,9 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.3-alpha] - Unreleased
+## [0.0.3-alpha] - 2026-1-2
+
+Happy New Year! In this update I've added some more functionality to the trivia system. Mainly, trivia questions are now created automatically by listening for Nick's trademark "Category:" line.
 
 ### Added
+- Automatic trivia creation by detecting manually typed questions
 - Multi-answer trivia support allowing multiple users to answer correctly within the time window
 - Reaction-based feedback for trivia answers (✅ for correct, ❌ for asker self-answer attempts)
 - Channel type validation for trivia command (text channels and threads only)
