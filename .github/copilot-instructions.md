@@ -10,7 +10,7 @@ A modular Discord bot built with `discord.py` using Cog-based architecture, JSON
 - `utils.py` — Shared helpers. `is_admin(user_id)` checks against `ADMIN_IDS` env var (comma-separated Discord user IDs)
 - `cogs/*.py` — Feature modules. Each is a `commands.Cog` subclass with `async def setup(bot)` for registration
 
-**Cog Loading:** In `bot.py`'s `setup_hook()`, cogs are loaded via `await self.load_extension("cogs.cog_name")`. Active cogs: `general`, `rank`, `economy`, `trivia`, `casino`, `fun`, `games`.
+**Cog Loading:** In `bot.py`'s `setup_hook()`, cogs are loaded via `await self.load_extension("cogs.cog_name")`. Active cogs (as of 0.0.3-alpha): `general`, `rank`, `economy`, `trivia`, `casino`, `fun`, `games`. Note: `moderation` and `settings` cogs removed in 0.0.2-alpha.
 
 **Bot Configuration:**
 - **Version tracking:** `__version__` in `bot.py` (current: 0.0.3-alpha)
@@ -58,7 +58,7 @@ def save_ranks_with_cooldowns(ranks_data, cooldowns):
 **Data Files:**
 - `ranks.json` — XP/level system. Level formula: `floor(sqrt(xp / 50))`. XP gain: 15-25 per message with 10s cooldown
 - `economy.json` — Balances, total earned, daily cooldowns (24h). Structure: `{"users": {user_id: {balance, total_earned}}, "daily_cooldowns": {user_id: timestamp}}`
-- `settings.json` — Per-guild configs: `{guild_id: {prefix, xp_enabled, autorole_enabled, autorole_id, modlog_channel}}` (see `bot.py` lines 44-57 for autorole usage)
+- `settings.json` — Per-guild configs for autorole: `{guild_id: {autorole_enabled, autorole_id}}`. Despite settings cog removal in 0.0.2-alpha, `bot.py`'s `on_member_join` (lines 44-57) still reads this file for autorole functionality. Other settings fields (prefix, xp_enabled, modlog_channel) are legacy and unused.
 
 ## Cross-Cog Communication
 
@@ -178,11 +178,31 @@ See `games.py` for more complex examples with real-time rendering.
 - Fuzzy match with `difflib.SequenceMatcher` (0.78 threshold) - see lines 36-52
 - Supports multiple accepted answers separated by `|` or `,`
 
-**Multi-Winner Support:** `correct_users` list allows multiple users to answer (lines 482-510). First correct gets checkmark + rewards, subsequent get silent checkmark. Asker cannot answer their own trivia.
+**Multi-Winner Support (v0.0.3-alpha):** `correct_users` list allows multiple users to answer (lines 520-555). All correct users get checkmark reaction + full rewards (XP/credits). Asker attempting to answer gets ❌ reaction and no rewards. Trivia continues until time expires, not on first answer.
 
 **Time-Bound Watcher:** Background task (`bot.loop.create_task()`) waits until `ends_at` timestamp (6am next day), then auto-ends trivia. Stored in `trivia['task']` for cancellation (lines 158-162, 291-299).
 
 **Cancel Logic:** Only trivia asker or users with `manage_guild` permission can cancel active trivia.
+
+## Version Tracking & Changelog
+
+**Version Management:**
+- `__version__` in `bot.py` is the single source of truth (format: `X.Y.Z-alpha/beta/rc`)
+- Update `__version__` when releasing new features or fixes
+- Track version in `CHANGELOG.md` with sections: Added, Changed, Removed
+
+**Changelog Pattern:**
+```markdown
+## [X.Y.Z-alpha] - YYYY-MM-DD
+### Added
+- New feature descriptions
+### Changed  
+- Modified behavior descriptions
+### Removed
+- Deleted feature descriptions
+```
+
+**Workflow:** When adding features → update `__version__` in `bot.py` → document in `CHANGELOG.md` → commit together
 
 ## Project Conventions
 

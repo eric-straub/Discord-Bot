@@ -330,7 +330,7 @@ class Trivia(commands.Cog):
         if channel:
             # Create embed for trivia end
             embed = discord.Embed(
-                title="🎯 Trivia Ended" if reason == "time" else "🛑 Trivia Canceled",
+                title="Trivia Ended" if reason == "time" else "Trivia Canceled",
                 color=discord.Color.blue() if reason == "time" else discord.Color.orange(),
                 timestamp=discord.utils.utcnow()
             )
